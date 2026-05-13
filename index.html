@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoidTalk</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="background-glow glow-one"></div>
+    <div class="background-glow glow-two"></div>
+
+    <div class="floating-icons" id="floatingIcons" aria-hidden="true"></div>
+
+    <header class="header">
+        <a href="#" class="logo" id="logo" data-page="index.html">VoidTalk</a>
+
+        <nav class="nav">
+            <a href="#" data-page="index.html">Головна</a>
+            <a href="#" data-page="popular.html">Популярне</a>
+            <a href="#" data-page="hashtags.html">Хештеги</a>
+            <a href="about.html" data-page="about.html">Про сайт</a>
+            <a href="profile.html">Профіль</a>
+        </nav>
+    </header>
+
+    <main class="main">
+        <section class="hero">
+
+            <div class="hero-text">
+                <div class="badge">Міні-соціальна платформа</div>
+
+                <h1>
+                    Місце для думок,<br>
+                    постів і обговорень
+                </h1>
+
+                <p>
+                    VoidTalk — це простий вебзастосунок, де користувачі можуть
+                    публікувати короткі повідомлення, переглядати пости та знаходити
+                    цікаві теми за хештегами.
+                </p>
+
+                <div class="hero-buttons">
+                    <a href="#" class="primary-btn" onclick="showRegister()">Зареєструватися</a>
+                    <a href="#" class="secondary-btn" onclick="showLogin()">Увійти</a>
+                </div>
+            </div>
+
+            <div class="auth-card">
+                <div class="tabs">
+                    <button id="loginTab" class="tab active" type="button" onclick="showLogin()">
+                        Вхід
+                    </button>
+
+                    <button id="registerTab" class="tab" type="button" onclick="showRegister()">
+                        Реєстрація
+                    </button>
+                </div>
+
+                <div class="forms-wrapper">
+
+                    <form id="loginForm" class="form active-form" action="/api/login" method="POST">
+                        <h2>Увійти</h2>
+
+                        <label for="loginEmail">Email</label>
+                        <input
+                            id="loginEmail"
+                            name="email"
+                            type="email"
+                            placeholder="Введіть email"
+                            required
+                        >
+
+                        <label for="loginPassword">Пароль</label>
+                        <input
+                            id="loginPassword"
+                            name="password"
+                            type="password"
+                            placeholder="Введіть пароль"
+                            minlength="6"
+                            required
+                        >
+
+                        <button type="submit" class="form-btn">Увійти</button>
+
+                        <p class="small-text">
+                            Немає акаунта?
+                            <a href="#" onclick="showRegister()">Зареєструватися</a>
+                        </p>
+                    </form>
+
+                    <form id="registerForm" class="form" action="/api/register" method="POST">
+                        <h2>Реєстрація</h2>
+
+                        <label for="registerUsername">Ім’я користувача</label>
+                        <input
+                            id="registerUsername"
+                            name="username"
+                            type="text"
+                            placeholder="Наприклад: Mykhailo"
+                            minlength="3"
+                            required
+                        >
+
+                        <label for="registerEmail">Email</label>
+                        <input
+                            id="registerEmail"
+                            name="email"
+                            type="email"
+                            placeholder="Введіть email"
+                            required
+                        >
+
+                        <label for="registerPassword">Пароль</label>
+                        <input
+                            id="registerPassword"
+                            name="password"
+                            type="password"
+                            placeholder="Створіть пароль"
+                            minlength="6"
+                            required
+                        >
+
+                        <button type="submit" class="form-btn">Зареєструватися</button>
+
+                        <p class="small-text">
+                            Вже маєте акаунт?
+                            <a href="#" onclick="showLogin()">Увійти</a>
+                        </p>
+                    </form>
+
+                </div>
+            </div>
+
+        </section>
+
+        <section class="preview">
+            <h2>Популярні теми</h2>
+
+            <div class="hashtags">
+                <a href="#" data-tag="games" data-page="tag-games.html">#games</a>
+                <a href="#" data-tag="study" data-page="tag-study.html">#study</a>
+                <a href="#" data-tag="news" data-page="tag-news.html">#news</a>
+                <a href="#" data-tag="memes" data-page="tag-memes.html">#memes</a>
+                <a href="#" data-tag="programming" data-page="tag-programming.html">#programming</a>
+                <a href="#" data-tag="questions" data-page="tag-questions.html">#questions</a>
+                <a href="#" data-tag="design" data-page="tag-design.html">#design</a>
+                <a href="#" data-tag="random" data-page="tag-random.html">#random</a>
+                <a href="#" data-tag="frontend" data-page="tag-frontend.html">#frontend</a>
+                <a href="#" data-tag="backend" data-page="tag-backend.html">#backend</a>
+            </div>
+
+            <div class="posts">
+                <a href="#" class="post-card" data-page="post-1.html">
+                    <div class="post-top">
+                        <div class="avatar">M</div>
+                        <div>
+                            <h3>@mykhailo</h3>
+                            <p>2 хв тому</p>
+                        </div>
+                    </div>
+
+                    <p class="post-text">
+                        Сьогодні працюю над головною сторінкою для міні-соціальної платформи.
+                    </p>
+
+                    <div class="post-bottom">
+                        <span>♡ 24</span>
+                        <span>💬 8</span>
+                        <span>#frontend</span>
+                    </div>
+                </a>
+
+                <a href="#" class="post-card" data-page="post-2.html">
+                    <div class="post-top">
+                        <div class="avatar">A</div>
+                        <div>
+                            <h3>@admin</h3>
+                            <p>10 хв тому</p>
+                        </div>
+                    </div>
+
+                    <p class="post-text">
+                        Нова тема для обговорення: як зробити сайт красивим і простим?
+                    </p>
+
+                    <div class="post-bottom">
+                        <span>♡ 41</span>
+                        <span>💬 13</span>
+                        <span>#design</span>
+                    </div>
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="stamp">
+            <p>© 2026 VoidTalk</p>
+            <p>Розробник: Невдачін Михайло</p>
+            <p>Навчальний проєкт для екзамену</p>
+        </div>
+    </footer>
+
+    <audio id="logoSound" src="audio/click-sound.mp3" preload="auto"></audio>
+    <script src="script.js"></script>
+</body>
+</html>

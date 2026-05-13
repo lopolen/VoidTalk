@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профіль | VoidTalk</title>
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="profile.css">
+</head>
+<body>
+
+    <div class="background-glow glow-one"></div>
+    <div class="background-glow glow-two"></div>
+
+    <div class="floating-icons" id="floatingIcons" aria-hidden="true"></div>
+
+    <header class="header">
+        <a href="index.html" class="logo" id="logo">VoidTalk</a>
+
+        <nav class="nav">
+            <a href="index.html">Головна</a>
+            <a href="#">Популярне</a>
+            <a href="#">Хештеги</a>
+            <a href="about.html">Про сайт</a>
+            <a href="profile.html">Профіль</a>
+        </nav>
+    </header>
+
+    <main class="main profile-main">
+
+        <section class="profile-hero compact-profile-hero">
+            <div class="badge">Профіль користувача</div>
+        </section>
+
+        <section class="profile-layout">
+
+            <div class="profile-preview-card">
+                <h2>Попередній перегляд</h2>
+
+                <div class="profile-avatar-preview" id="avatarBackground">
+                    <img id="profileAvatar" src="icons/skull.svg" alt="Аватар користувача">
+                </div>
+
+                <h3 id="profileNamePreview">@username</h3>
+
+                <p id="profileDescriptionPreview">
+                    Короткий опис акаунту буде відображатися тут.
+                </p>
+
+                <div class="profile-stats">
+                    <div>
+                        <strong>12</strong>
+                        <span>Постів</span>
+                    </div>
+
+                    <div>
+                        <strong>48</strong>
+                        <span>Коментарів</span>
+                    </div>
+
+                    <div>
+                        <strong>7</strong>
+                        <span>Тем</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-settings-card">
+                <h2>Редагування профілю</h2>
+
+                <form id="profileForm" class="profile-form" action="/api/profile" method="POST">
+
+                    <label for="accountName">Назва акаунту</label>
+                    <input
+                        id="accountName"
+                        name="accountName"
+                        type="text"
+                        placeholder="Наприклад: Mykhailo"
+                        maxlength="24"
+                        required
+                    >
+
+                    <label for="accountDescription">Опис акаунту</label>
+                    <textarea
+                        id="accountDescription"
+                        name="accountDescription"
+                        placeholder="Напишіть коротко про себе або свої інтереси..."
+                        maxlength="180"
+                    ></textarea>
+
+                    <label>Градієнт фону аватарки</label>
+
+                    <div class="gradient-color-row">
+                        <div>
+                            <span>Перший колір</span>
+                            <input
+                                id="avatarColorStart"
+                                name="avatarColorStart"
+                                type="color"
+                                value="#6d28d9"
+                            >
+                        </div>
+
+                        <div>
+                            <span>Другий колір</span>
+                            <input
+                                id="avatarColorEnd"
+                                name="avatarColorEnd"
+                                type="color"
+                                value="#a855f7"
+                            >
+                        </div>
+                    </div>
+
+                    <input
+                        id="avatarInput"
+                        name="avatar"
+                        type="hidden"
+                        value="icons/skull.svg"
+                    >
+
+                    <label>Оберіть аватарку</label>
+
+                    <div class="avatar-list" id="avatarList">
+                        <button type="button" class="avatar-option active" data-avatar="icons/skull.svg">
+                            <img src="icons/skull.svg" alt="">
+                        </button>
+
+                        <button type="button" class="avatar-option" data-avatar="icons/react.svg">
+                            <img src="icons/react.svg" alt="">
+                        </button>
+
+                        <button type="button" class="avatar-option" data-avatar="icons/webhook.svg">
+                            <img src="icons/webhook.svg" alt="">
+                        </button>
+
+                        <button type="button" class="avatar-option" data-avatar="icons/send-alt.svg">
+                            <img src="icons/send-alt.svg" alt="">
+                        </button>
+
+                        <button type="button" class="avatar-option" data-avatar="icons/cube-inside.svg">
+                            <img src="icons/cube-inside.svg" alt="">
+                        </button>
+
+                        <button type="button" class="avatar-option" data-avatar="icons/dumbbell-alt.svg">
+                            <img src="icons/dumbbell-alt.svg" alt="">
+                        </button>
+
+                        <button type="button" class="avatar-option" data-avatar="icons/buddhism.svg">
+                            <img src="icons/buddhism.svg" alt="">
+                        </button>
+
+                        <button type="button" class="avatar-option" data-avatar="icons/transgender.svg">
+                            <img src="icons/transgender.svg" alt="">
+                        </button>
+                    </div>
+
+                    <div class="profile-buttons">
+                        <button type="submit" class="primary-btn">Зберегти профіль</button>
+                        <button type="button" class="secondary-btn" id="resetProfile">Скинути</button>
+                    </div>
+
+                </form>
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer class="footer">
+        <div class="stamp">
+            <p>© 2026 VoidTalk</p>
+            <p>Профіль користувача</p>
+            <p>Навчальний проєкт</p>
+        </div>
+    </footer>
+
+    <audio id="logoSound" src="audio/click-sound.mp3" preload="auto"></audio>
+    <script src="profile.js"></script>
+</body>
+</html>
