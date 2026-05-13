@@ -1,0 +1,9 @@
+Table users {
+  id integer [primary key]
+  username varchar(20) [unique]
+  email varchar(255) [unique]
+  
+  password_hash varchar
+  
+  created_at timestamp [default: `now()`]
+}
