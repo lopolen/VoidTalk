@@ -28,3 +28,12 @@ Table user_sessions {
   created_at timestamp [default: `now()`, not null]
   expires_at timestamp [not null]
 }
+
+Table posts {
+  id integer [primary key]
+  user_id integer [not null, ref: > users.id] // Created by user...
+
+  post_body text [not null]
+
+  created_at timestamp [default: `now()`, not null]
+}
