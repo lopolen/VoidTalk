@@ -65,6 +65,15 @@ class AuthService:
             expires_at=expires_at,
         )
 
+    def logout_user(self, session_token: str | None) -> bool:
+        if session_token is None:
+            return False
+
+        return self.sessions.expire_by_token(
+            session_token=session_token,
+            now=datetime.now(timezone.utc),
+        )
+
     def _normalize_email_login(self, login: str) -> str:
         try:
             return validate_email_address(login)

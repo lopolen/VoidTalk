@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from voidtalk_api.core.database import get_db
@@ -75,3 +75,18 @@ def login_user(
     )
 
     return user
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout_user(
+    response: Response,
+    session_token: str | None = Cookie(default=None, alias=SESSION_COOKIE_NAME),
+    db: Session = Depends(get_db),
+):
+    auth_service = AuthService(db)
+    auth_service.logout_user(session_token)
+    response.delete_cookie(
+        key=SESSION_COOKIE_NAME,
+        httponly=True,
+        samesite="lax",
+    )

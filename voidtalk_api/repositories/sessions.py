@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from voidtalk_api.models.user import UserSession
@@ -38,3 +38,15 @@ class UserSessionRepository:
                 UserSession.expires_at > now,
             )
         )
+
+    def expire_by_token(self, session_token: str, now: datetime) -> bool:
+        result = self.db.execute(
+            update(UserSession)
+            .where(
+                UserSession.session_token == session_token,
+                UserSession.expires_at > now,
+            )
+            .values(expires_at=now)
+        )
+        self.db.commit()
+        return result.rowcount > 0
