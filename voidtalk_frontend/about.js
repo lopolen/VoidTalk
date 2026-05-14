@@ -52,7 +52,11 @@ const iconPaths = [
     "icons/cube-inside.svg",
     "icons/dumbbell-alt.svg",
     "icons/buddhism.svg",
-    "icons/transgender.svg"
+    "icons/transgender.svg",
+    "icons/loader-lines.svg",
+    "icons/virus.svg",
+    "icons/radiation.svg",
+    "icons/command.svg"
 ];
 
 const settings = {

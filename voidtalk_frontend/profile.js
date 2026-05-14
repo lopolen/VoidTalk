@@ -126,7 +126,7 @@ function renderProfile() {
 /* Live updates */
 
 accountNameInput.addEventListener("input", function() {
-    accountNameInput.value = accountNameInput.value.replace(/\s/g, "");
+    accountNameInput.value = accountNameInput.value.replace(/[^a-zA-Z0-9_.]/g, "");
 
     currentProfile.accountName = accountNameInput.value;
     renderProfile();
@@ -225,7 +225,11 @@ const iconPaths = [
     "icons/cube-inside.svg",
     "icons/dumbbell-alt.svg",
     "icons/buddhism.svg",
-    "icons/transgender.svg"
+    "icons/transgender.svg",
+    "icons/loader-lines.svg",
+    "icons/virus.svg",
+    "icons/radiation.svg",
+    "icons/command.svg"
 ];
 
 const settings = {
