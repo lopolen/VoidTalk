@@ -132,8 +132,11 @@ accountNameInput.addEventListener("input", function() {
     renderProfile();
 });
 accountDescriptionInput.addEventListener("input", function() {
-    currentProfile.accountDescription = accountDescriptionInput.value.trim();
-    renderProfile();
+    currentProfile.accountDescription = accountDescriptionInput.value;
+
+    profileDescriptionPreview.textContent = currentProfile.accountDescription
+        ? currentProfile.accountDescription
+        : "Короткий опис акаунту буде відображатися тут.";
 });
 
 avatarColorStartInput.addEventListener("input", function() {

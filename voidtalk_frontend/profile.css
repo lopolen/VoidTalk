@@ -4,20 +4,6 @@
     padding-top: 10px;
 }
 
-.profile-hero {
-    max-width: 850px;
-    margin: 20px auto 50px;
-    text-align: center;
-    animation: fadeUp 1s ease both;
-}
-
-.compact-profile-hero {
-    margin: 20px auto 35px;
-}
-
-.compact-profile-hero .badge {
-    margin-bottom: 0;
-}
 
 .profile-layout {
     display: grid;
