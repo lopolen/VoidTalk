@@ -65,6 +65,19 @@ class AuthService:
             expires_at=expires_at,
         )
 
+    def get_user_by_session_token(self, session_token: str | None) -> User | None:
+        if session_token is None:
+            return None
+
+        session = self.sessions.get_active_by_token(
+            session_token=session_token,
+            now=datetime.now(timezone.utc),
+        )
+        if session is None:
+            return None
+
+        return session.user
+
     def logout_user(self, session_token: str | None) -> bool:
         if session_token is None:
             return False
