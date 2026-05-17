@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Повідомлення | VoidTalk</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="background-glow glow-one"></div>
+    <div class="background-glow glow-two"></div>
+
+    <div class="floating-icons" id="floatingIcons" aria-hidden="true"></div>
+
+    <header class="header">
+        <a href="index.html" class="logo" id="logo">VoidTalk</a>
+
+        <nav class="nav">
+            <a href="index.html">Головна</a>
+            <a href="#" class="active-page">Повідомлення</a>
+            <a href="hashtags.html">Хештеги</a>
+            <a href="about.html">Про сайт</a>
+            <a href="profile.html">Профіль</a>
+        </nav>
+    </header>
+
+    <main class="main messages-main">
+
+        <section class="message-create-card">
+            <h2>Створити повідомлення</h2>
+
+            <form id="messageForm" class="message-form">
+                <textarea
+                    id="messageInput"
+                    maxlength="500"
+                    placeholder="Напишіть своє повідомлення..."
+                    required
+                ></textarea>
+
+                <div class="message-form-bottom">
+                    <span id="messageCounter">0 / 500</span>
+                    <button type="submit" class="primary-btn">Опублікувати</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="messages-toolbar">
+            <div>
+                <div class="badge">Стрічка повідомлень</div>
+                <h2>Усі повідомлення</h2>
+            </div>
+
+            <div class="message-search-box">
+                <input
+                    id="messageSearch"
+                    type="text"
+                    placeholder="Пошук за текстом або тегом..."
+                >
+            </div>
+
+            <div class="message-filters">
+                <button class="secondary-btn filter-btn active-filter" type="button" data-filter="all">
+                    Усі
+                </button>
+                <button class="secondary-btn filter-btn" type="button" data-filter="frontend">
+                    #frontend
+                </button>
+                <button class="secondary-btn filter-btn" type="button" data-filter="backend">
+                    #backend
+                </button>
+                <button class="secondary-btn filter-btn" type="button" data-filter="random">
+                    #random
+                </button>
+            </div>
+        </section>
+
+        <section class="messages-scroll" id="messagesScroll">
+            <div class="posts messages-list" id="messagesList"></div>
+        </section>
+
+    </main>
+
+    <footer class="footer">
+        <div class="stamp">
+            <p>VoidTalk</p>
+            <p>Міні-соціальна платформа</p>
+        </div>
+    </footer>
+
+    <audio id="logoSound" src="audio/click-sound.mp3" preload="auto"></audio>
+
+    <script src="messages.js"></script>
+</body>
+</html>
