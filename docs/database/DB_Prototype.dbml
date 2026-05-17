@@ -1,9 +1,39 @@
 Table users {
   id integer [primary key]
-  username varchar(20) [unique]
-  email varchar(255) [unique]
+  username varchar(24) [unique, not null]
+  email varchar(255) [unique, not null]
   
-  password_hash varchar
+  password_hash varchar(255) 
   
-  created_at timestamp [default: `now()`]
+  created_at timestamp [default: `now()`, not null]
+}
+
+Table user_optional_info {
+  user_id integer [primary key, ref: < users.id]
+
+  account_description text
+
+  // HEX COLOR CODE
+  first_icon_color varchar(7) [not null, default: '#000000']
+  second_icon_color varchar(7) [not null, default: '#000000']
+  
+  icon_id integer [not null, default: 1]
+}
+
+Table user_sessions {
+  id integer [primary key]
+  user_id integer [not null, ref: > users.id]
+  session_token varchar(128) [unique, not null]
+
+  created_at timestamp [default: `now()`, not null]
+  expires_at timestamp [not null]
+}
+
+Table posts {
+  id integer [primary key]
+  user_id integer [not null, ref: > users.id] // Created by user...
+
+  post_body text [not null]
+
+  created_at timestamp [default: `now()`, not null]
 }

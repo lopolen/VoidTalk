@@ -7,6 +7,7 @@ from sqlalchemy import pool
 
 from alembic import context
 from voidtalk_api.core.database import Base
+from voidtalk_api.models import post
 from voidtalk_api.models import user
 
 # this is the Alembic Config object, which provides

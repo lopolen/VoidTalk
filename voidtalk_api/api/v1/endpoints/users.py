@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from voidtalk_api.core.database import get_db
@@ -8,7 +8,11 @@ from voidtalk_api.core.exceptions import (
     ResourceAlreadyExists,
 )
 from voidtalk_api.schemas.user import UserLogin, UserRead, UserRegister
-from voidtalk_api.services.auth import AuthService
+from voidtalk_api.services.auth import (
+    SESSION_COOKIE_MAX_AGE,
+    SESSION_COOKIE_NAME,
+    AuthService,
+)
 
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -37,7 +41,11 @@ def register_user(user_data: UserRegister, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=UserRead)
-def login_user(credentials: UserLogin, db: Session = Depends(get_db)):
+def login_user(
+    credentials: UserLogin,
+    response: Response,
+    db: Session = Depends(get_db),
+):
     auth_service = AuthService(db)
 
     try:
@@ -57,4 +65,28 @@ def login_user(credentials: UserLogin, db: Session = Depends(get_db)):
             detail="Invalid login or password.",
         )
 
+    session = auth_service.create_session(user)
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=session.session_token,
+        max_age=SESSION_COOKIE_MAX_AGE,
+        httponly=True,
+        samesite="lax",
+    )
+
     return user
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout_user(
+    response: Response,
+    session_token: str | None = Cookie(default=None, alias=SESSION_COOKIE_NAME),
+    db: Session = Depends(get_db),
+):
+    auth_service = AuthService(db)
+    auth_service.logout_user(session_token)
+    response.delete_cookie(
+        key=SESSION_COOKIE_NAME,
+        httponly=True,
+        samesite="lax",
+    )

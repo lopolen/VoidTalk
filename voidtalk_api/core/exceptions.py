@@ -13,3 +13,11 @@ class PasswordResetRequired(Exception):
 class ResourceAlreadyExists(Exception):
     """Resource with this unique field already exists"""
     pass
+
+class ResourceNotFound(Exception):
+    """Requested resource does not exist"""
+    pass
+
+class PermissionDenied(Exception):
+    """User is not allowed to perform this action"""
+    pass
