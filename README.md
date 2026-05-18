@@ -20,9 +20,12 @@ voidtalk_frontend/     Статичний frontend
 alembic/               Міграції бази даних
 docs/                  Додаткова документація
 scripts/setup_dev.sh   Первинне налаштування dev-середовища
+scripts/setup_dev.bat  Первинне налаштування dev-середовища на Windows
 ```
 
 ## Швидкий старт
+
+### Linux / macOS
 
 Запустіть setup-скрипт із кореня репозиторію:
 
@@ -30,19 +33,44 @@ scripts/setup_dev.sh   Первинне налаштування dev-серед�
 ./scripts/setup_dev.sh
 ```
 
+### Windows
+
+Запустіть setup-скрипт із кореня репозиторію у `cmd.exe`:
+
+```bat
+scripts\setup_dev.bat
+```
+
+Якщо Python доступний не як `python`, передайте іншу команду через `PYTHON_BIN`. Наприклад:
+
+```bat
+set PYTHON_BIN=py -3
+scripts\setup_dev.bat
+```
+
 Скрипт:
 
 - створить `.venv`, якщо його ще немає;
 - встановить Python-пакети з `requirements.txt`;
 - створить `voidtalk_api/cfg/database_url.env`, якщо файл відсутній;
+- створить `voidtalk_api/cfg/recommendations.env`, якщо файл відсутній;
 - створить `voidtalk_frontend/config.js` із прикладу, якщо файл відсутній;
 - застосує міграції Alembic;
 - перевірить імпорт FastAPI app.
 
 ## Запуск backend
 
+Linux / macOS:
+
 ```bash
 source .venv/bin/activate
+uvicorn voidtalk_api.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Windows `cmd.exe`:
+
+```bat
+.venv\Scripts\activate.bat
 uvicorn voidtalk_api.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
@@ -61,6 +89,13 @@ Frontend є статичним. Його можна відкрити через 
 ```bash
 cd voidtalk_frontend
 python3 -m http.server 5173
+```
+
+На Windows:
+
+```bat
+cd voidtalk_frontend
+python -m http.server 5173
 ```
 
 Після цього відкрийте:
@@ -199,8 +234,17 @@ POST http://127.0.0.1:5173/api/v1/users/register
 
 Застосувати міграції:
 
+Linux / macOS:
+
 ```bash
 source .venv/bin/activate
+alembic upgrade head
+```
+
+Windows `cmd.exe`:
+
+```bat
+.venv\Scripts\activate.bat
 alembic upgrade head
 ```
 
@@ -212,9 +256,9 @@ alembic revision --autogenerate -m "describe change"
 
 ## Рекомендований dev workflow
 
-1. Запустіть `./scripts/setup_dev.sh`.
+1. Запустіть `./scripts/setup_dev.sh` на Linux/macOS або `scripts\setup_dev.bat` на Windows.
 2. Запустіть backend через `uvicorn`.
-3. Запустіть frontend через Live Server або `python3 -m http.server 5173`.
+3. Запустіть frontend через Live Server, `python3 -m http.server 5173` на Linux/macOS або `python -m http.server 5173` на Windows.
 4. Зареєструйте користувача.
 5. Перевірте в DevTools, що після login є cookie `voidtalk_session`.
 6. Відкрийте профіль або створіть пост: frontend перевірить сесію через `/api/v1/users/me`.
