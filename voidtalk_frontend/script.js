@@ -4,19 +4,19 @@ const registerForm = document.getElementById("registerForm");
 const loginTab = document.getElementById("loginTab");
 const registerTab = document.getElementById("registerTab");
 
-checkCurrentSession();
-
-async function checkCurrentSession() {
-    try {
-        await voidTalkApi.getCurrentSession();
-    } catch (error) {
-        console.log("Не вдалося перевірити поточну сесію:", error);
-    }
-}
+/*
+    ВАЖНО:
+    Тут мы НЕ вызываем getCurrentSession() автоматически,
+    потому что из-за /users/me сайт мог сам себя разлогинивать.
+*/
 
 /* Перемикання форм входу та реєстрації */
 
 function showLogin() {
+    if (!loginForm || !registerForm || !loginTab || !registerTab) {
+        return;
+    }
+
     loginForm.classList.add("active-form");
     registerForm.classList.remove("active-form");
 
@@ -25,6 +25,10 @@ function showLogin() {
 }
 
 function showRegister() {
+    if (!loginForm || !registerForm || !loginTab || !registerTab) {
+        return;
+    }
+
     registerForm.classList.add("active-form");
     loginForm.classList.remove("active-form");
 
@@ -47,6 +51,18 @@ pageLinks.forEach(function(link) {
     });
 });
 
+/* Допоміжна функція для збереження користувача */
+
+function saveAuthUser(user, fallbackUser) {
+    const finalUser = user || fallbackUser;
+
+    if (!finalUser) {
+        return;
+    }
+
+    localStorage.setItem("voidTalkUser", JSON.stringify(finalUser));
+}
+
 /* Вхід користувача */
 
 if (loginForm) {
@@ -54,7 +70,7 @@ if (loginForm) {
         event.preventDefault();
 
         const formData = {
-            login: loginForm.email.value,
+            login: loginForm.email.value.trim(),
             password: loginForm.password.value
         };
 
@@ -73,9 +89,23 @@ if (loginForm) {
                 return;
             }
 
-            const user = await voidTalkApi.readJsonResponse(response);
+            let user = await voidTalkApi.readJsonResponse(response);
 
-            localStorage.setItem("voidTalkUser", JSON.stringify(user));
+            /*
+                Якщо backend після login не повернув користувача,
+                frontend все одно зберігає базові дані,
+                щоб сайт не викидав назад на index.html.
+            */
+            if (!user) {
+                user = {
+                    username: formData.login.includes("@")
+                        ? formData.login.split("@")[0]
+                        : formData.login,
+                    email: formData.login
+                };
+            }
+
+            saveAuthUser(user);
 
             alert("Вхід успішний");
             window.location.href = "profile.html";
@@ -97,8 +127,8 @@ if (registerForm) {
         event.preventDefault();
 
         const formData = {
-            username: registerForm.username.value,
-            email: registerForm.email.value,
+            username: registerForm.username.value.trim(),
+            email: registerForm.email.value.trim(),
             password: registerForm.password.value
         };
 
@@ -117,7 +147,8 @@ if (registerForm) {
                 return;
             }
 
-            const user = await voidTalkApi.readJsonResponse(response);
+            const registeredUser = await voidTalkApi.readJsonResponse(response);
+
             const loginResponse = await apiFetch("/api/v1/users/login", {
                 method: "POST",
                 headers: {
@@ -134,12 +165,27 @@ if (registerForm) {
                     loginResponse,
                     "Реєстрація успішна, але автоматичний вхід не вдався."
                 );
+
                 alert(errorMessage);
                 showLogin();
                 return;
             }
 
-            localStorage.setItem("voidTalkUser", JSON.stringify(user));
+            let loginUser = await voidTalkApi.readJsonResponse(loginResponse);
+
+            /*
+                Якщо backend після login нічого не повернув,
+                беремо користувача з register.
+                Якщо і там пусто — створюємо frontend-об'єкт самі.
+            */
+            if (!loginUser) {
+                loginUser = registeredUser || {
+                    username: formData.username,
+                    email: formData.email
+                };
+            }
+
+            saveAuthUser(loginUser);
             localStorage.setItem("voidTalkProfileNeedsSetup", "true");
 
             alert("Реєстрація успішна. Тепер налаштуйте профіль.");

@@ -1,9 +1,12 @@
 /*
     profile.js
     Сторінка профілю користувача.
-    Дані змінюються в реальному часі.
-    Збереження поки через localStorage.
-    Для backend підготовлені name-поля у формі.
+
+    Логіка:
+    - нікнейм береться тільки з backend / voidTalkUser;
+    - локальний нікнейм більше не використовується;
+    - опис, кольори і аватарка зберігаються через /api/v1/users/me/optional-info;
+    - localStorage використовується тільки як запасний варіант для відображення.
 */
 
 /* Easter egg */
@@ -55,8 +58,38 @@ const avatarBackground = document.getElementById("avatarBackground");
 const avatarButtons = document.querySelectorAll(".avatar-option");
 const resetProfileButton = document.getElementById("resetProfile");
 
+/* Avatar mapping for backend icon_id */
+
+const avatarMap = {
+    1: "icons/skull.svg",
+    2: "icons/react.svg",
+    3: "icons/webhook.svg",
+    4: "icons/send-alt.svg",
+    5: "icons/cube-inside.svg",
+    6: "icons/dumbbell-alt.svg",
+    7: "icons/buddhism.svg",
+    8: "icons/transgender.svg",
+    9: "icons/loader-lines.svg",
+    10: "icons/virus.svg",
+    11: "icons/radiation.svg",
+    12: "icons/command.svg"
+};
+
+function getIconIdByAvatarPath(avatarPath) {
+    const foundEntry = Object.entries(avatarMap).find(function(entry) {
+        return entry[1] === avatarPath;
+    });
+
+    return foundEntry ? Number(foundEntry[0]) : 1;
+}
+
+function getAvatarPathByIconId(iconId) {
+    return avatarMap[Number(iconId)] || avatarMap[1];
+}
+
+/* Default profile */
+
 const defaultProfile = {
-    accountName: "username",
     accountDescription: "",
     avatar: "icons/skull.svg",
     avatarColorStart: "#6d28d9",
@@ -64,8 +97,15 @@ const defaultProfile = {
 };
 
 let currentProfile = loadProfile();
+let serverUser = null;
+let backendOptionalInfo = null;
 
-loadProfileFromSession();
+if (accountNameInput) {
+    accountNameInput.readOnly = true;
+    accountNameInput.title = "Нікнейм береться з акаунта на сервері.";
+}
+
+/* Local fallback profile */
 
 function loadProfile() {
     const savedProfile = localStorage.getItem("voidTalkProfile");
@@ -79,40 +119,223 @@ function loadProfile() {
 
         return {
             ...defaultProfile,
-            ...parsedProfile
+            accountDescription: parsedProfile.accountDescription || "",
+            avatar: parsedProfile.avatar || defaultProfile.avatar,
+            avatarColorStart: parsedProfile.avatarColorStart || defaultProfile.avatarColorStart,
+            avatarColorEnd: parsedProfile.avatarColorEnd || defaultProfile.avatarColorEnd
         };
     } catch (error) {
+        console.log("Не вдалося прочитати локальний профіль:", error);
         return { ...defaultProfile };
     }
 }
 
 function saveProfile(profile) {
-    localStorage.setItem("voidTalkProfile", JSON.stringify(profile));
+    const profileForSave = {
+        accountDescription: profile.accountDescription || "",
+        avatar: profile.avatar || defaultProfile.avatar,
+        avatarColorStart: profile.avatarColorStart || defaultProfile.avatarColorStart,
+        avatarColorEnd: profile.avatarColorEnd || defaultProfile.avatarColorEnd
+    };
+
+    localStorage.setItem("voidTalkProfile", JSON.stringify(profileForSave));
+}
+
+/* Server user */
+
+async function loadServerUser() {
+    try {
+        let user = null;
+
+        if (window.voidTalkApi && typeof voidTalkApi.getCurrentSession === "function") {
+            user = await voidTalkApi.getCurrentSession();
+        }
+
+        if (!user) {
+            const savedUser = localStorage.getItem("voidTalkUser");
+
+            if (savedUser) {
+                user = JSON.parse(savedUser);
+            }
+        }
+
+        if (user) {
+            serverUser = user;
+        }
+    } catch (error) {
+        console.log("Не вдалося завантажити користувача з backend:", error);
+
+        try {
+            const savedUser = localStorage.getItem("voidTalkUser");
+
+            if (savedUser) {
+                serverUser = JSON.parse(savedUser);
+            }
+        } catch (localError) {
+            console.log("Не вдалося прочитати voidTalkUser:", localError);
+        }
+    }
+
+    renderProfile();
+}
+
+/* Optional info backend */
+
+async function loadOptionalInfoFromBackend() {
+    try {
+        if (typeof apiFetch !== "function" || !window.voidTalkApi) {
+            return;
+        }
+
+        const response = await apiFetch("/api/v1/users/me/optional-info", {
+            method: "GET"
+        });
+
+        if (response.status === 401 || response.status === 404) {
+            console.log("Optional-info поки немає або користувач не авторизований.");
+            return;
+        }
+
+        if (!response.ok) {
+            const errorMessage = await voidTalkApi.getApiErrorMessage(
+                response,
+                "Не вдалося завантажити optional-info."
+            );
+
+            console.log(errorMessage);
+            return;
+        }
+
+        const data = await voidTalkApi.readJsonResponse(response);
+
+        if (!data) {
+            return;
+        }
+
+        backendOptionalInfo = data;
+
+        currentProfile.accountDescription = data.account_description || "";
+        currentProfile.avatarColorStart = data.first_icon_color || defaultProfile.avatarColorStart;
+        currentProfile.avatarColorEnd = data.second_icon_color || defaultProfile.avatarColorEnd;
+        currentProfile.avatar = getAvatarPathByIconId(data.icon_id || 1);
+
+        saveProfile(currentProfile);
+        renderProfile();
+
+    } catch (error) {
+        console.log("Не вдалося завантажити optional-info:", error);
+    }
+}
+
+async function saveOptionalInfoToBackend() {
+    const payload = {
+        account_description: currentProfile.accountDescription || "",
+        first_icon_color: currentProfile.avatarColorStart || defaultProfile.avatarColorStart,
+        second_icon_color: currentProfile.avatarColorEnd || defaultProfile.avatarColorEnd,
+        icon_id: getIconIdByAvatarPath(currentProfile.avatar)
+    };
+
+    const response = await apiFetch("/api/v1/users/me/optional-info", {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+        const errorMessage = await voidTalkApi.getApiErrorMessage(
+            response,
+            "Не вдалося зберегти optional-info."
+        );
+
+        throw new Error(errorMessage);
+    }
+
+    const savedInfo = await voidTalkApi.readJsonResponse(response);
+
+    if (savedInfo) {
+        backendOptionalInfo = savedInfo;
+
+        currentProfile.accountDescription = savedInfo.account_description || "";
+        currentProfile.avatarColorStart = savedInfo.first_icon_color || defaultProfile.avatarColorStart;
+        currentProfile.avatarColorEnd = savedInfo.second_icon_color || defaultProfile.avatarColorEnd;
+        currentProfile.avatar = getAvatarPathByIconId(savedInfo.icon_id || 1);
+    }
+
+    saveProfile(currentProfile);
+    renderProfile();
+
+    return savedInfo;
+}
+
+/* Render */
+
+function getServerUsername() {
+    if (serverUser && serverUser.username) {
+        return serverUser.username;
+    }
+
+    const savedUser = localStorage.getItem("voidTalkUser");
+
+    if (savedUser) {
+        try {
+            const user = JSON.parse(savedUser);
+
+            if (user && user.username) {
+                return user.username;
+            }
+        } catch (error) {
+            console.log("Не вдалося прочитати username з voidTalkUser:", error);
+        }
+    }
+
+    return "username";
 }
 
 function renderProfile() {
-    profileNamePreview.textContent = currentProfile.accountName
-        ? "@" + currentProfile.accountName
-        : "@";
+    const username = getServerUsername();
 
-    profileDescriptionPreview.textContent = currentProfile.accountDescription
-        ? currentProfile.accountDescription
-        : "";
+    if (profileNamePreview) {
+        profileNamePreview.textContent = "@" + username;
+    }
 
-    profileAvatar.src = currentProfile.avatar;
-    profileAvatar.alt = "Аватар користувача";
+    if (accountNameInput) {
+        accountNameInput.value = username;
+    }
 
-    avatarBackground.style.background = `
-        linear-gradient(135deg, ${currentProfile.avatarColorStart}, ${currentProfile.avatarColorEnd})
-    `;
+    if (profileDescriptionPreview) {
+        profileDescriptionPreview.textContent = currentProfile.accountDescription
+            ? currentProfile.accountDescription
+            : "Короткий опис акаунту буде відображатися тут.";
+    }
 
-    accountNameInput.value = currentProfile.accountName;
-    accountDescriptionInput.value = currentProfile.accountDescription;
+    if (profileAvatar) {
+        profileAvatar.src = currentProfile.avatar;
+        profileAvatar.alt = "Аватар користувача";
+    }
 
-    avatarColorStartInput.value = currentProfile.avatarColorStart;
-    avatarColorEndInput.value = currentProfile.avatarColorEnd;
+    if (avatarBackground) {
+        avatarBackground.style.background = `
+            linear-gradient(135deg, ${currentProfile.avatarColorStart}, ${currentProfile.avatarColorEnd})
+        `;
+    }
 
-    avatarInput.value = currentProfile.avatar;
+    if (accountDescriptionInput) {
+        accountDescriptionInput.value = currentProfile.accountDescription;
+    }
+
+    if (avatarColorStartInput) {
+        avatarColorStartInput.value = currentProfile.avatarColorStart;
+    }
+
+    if (avatarColorEndInput) {
+        avatarColorEndInput.value = currentProfile.avatarColorEnd;
+    }
+
+    if (avatarInput) {
+        avatarInput.value = currentProfile.avatar;
+    }
 
     avatarButtons.forEach(function(button) {
         const buttonAvatar = button.getAttribute("data-avatar");
@@ -125,51 +348,39 @@ function renderProfile() {
     });
 }
 
-async function loadProfileFromSession() {
-    try {
-        const user = await voidTalkApi.getCurrentSession();
-
-        if (!user) {
-            return;
-        }
-
-        currentProfile = {
-            ...currentProfile,
-            accountName: user.username
-        };
-
-        saveProfile(currentProfile);
-        renderProfile();
-    } catch (error) {
-        console.log("Не вдалося завантажити профіль із сесії:", error);
-    }
-}
-
 /* Live updates */
 
-accountNameInput.addEventListener("input", function() {
-    accountNameInput.value = accountNameInput.value.replace(/[^a-zA-Z0-9_.]/g, "");
+if (accountNameInput) {
+    accountNameInput.addEventListener("input", function() {
+        accountNameInput.value = getServerUsername();
+    });
+}
 
-    currentProfile.accountName = accountNameInput.value;
-    renderProfile();
-});
-accountDescriptionInput.addEventListener("input", function() {
-    currentProfile.accountDescription = accountDescriptionInput.value;
+if (accountDescriptionInput) {
+    accountDescriptionInput.addEventListener("input", function() {
+        currentProfile.accountDescription = accountDescriptionInput.value;
 
-    profileDescriptionPreview.textContent = currentProfile.accountDescription
-        ? currentProfile.accountDescription
-        : "Короткий опис акаунту буде відображатися тут.";
-});
+        if (profileDescriptionPreview) {
+            profileDescriptionPreview.textContent = currentProfile.accountDescription
+                ? currentProfile.accountDescription
+                : "Короткий опис акаунту буде відображатися тут.";
+        }
+    });
+}
 
-avatarColorStartInput.addEventListener("input", function() {
-    currentProfile.avatarColorStart = avatarColorStartInput.value;
-    renderProfile();
-});
+if (avatarColorStartInput) {
+    avatarColorStartInput.addEventListener("input", function() {
+        currentProfile.avatarColorStart = avatarColorStartInput.value;
+        renderProfile();
+    });
+}
 
-avatarColorEndInput.addEventListener("input", function() {
-    currentProfile.avatarColorEnd = avatarColorEndInput.value;
-    renderProfile();
-});
+if (avatarColorEndInput) {
+    avatarColorEndInput.addEventListener("input", function() {
+        currentProfile.avatarColorEnd = avatarColorEndInput.value;
+        renderProfile();
+    });
+}
 
 avatarButtons.forEach(function(button) {
     button.addEventListener("click", function() {
@@ -182,54 +393,52 @@ avatarButtons.forEach(function(button) {
 
 /* Save */
 
-profileForm.addEventListener("submit", function(event) {
-    event.preventDefault();
+if (profileForm) {
+    profileForm.addEventListener("submit", async function(event) {
+        event.preventDefault();
 
-    if (!currentProfile.accountName.trim()) {
-        alert("Ви не можете зберегти профіль без нікнейму. Напишіть, будь ласка, нікнейм.");
-        accountNameInput.focus();
-        return;
-    }
+        saveProfile(currentProfile);
 
-    saveProfile(currentProfile);
+        try {
+            await saveOptionalInfoToBackend();
 
-    console.log("Профіль для backend:", currentProfile);
+            alert("Профіль збережено на сервері.");
+        } catch (error) {
+            console.log("Помилка збереження профілю:", error);
 
-    alert("Профіль збережено");
-});
+            alert(
+                "Профіль збережено локально, але не вдалося зберегти на сервері. " +
+                "Перевір backend або авторизацію."
+            );
+        }
+    });
+}
 
 /* Reset */
 
-resetProfileButton.addEventListener("click", function() {
-    currentProfile = { ...defaultProfile };
+if (resetProfileButton) {
+    resetProfileButton.addEventListener("click", async function() {
+        currentProfile = { ...defaultProfile };
 
-    localStorage.removeItem("voidTalkProfile");
+        localStorage.removeItem("voidTalkProfile");
 
-    renderProfile();
+        renderProfile();
 
-    alert("Профіль скинуто");
-});
+        try {
+            await saveOptionalInfoToBackend();
+            alert("Профіль скинуто і збережено на сервері.");
+        } catch (error) {
+            console.log("Помилка скидання профілю на сервері:", error);
+            alert("Профіль скинуто локально.");
+        }
+    });
+}
 
 /* Initial render */
 
 renderProfile();
-
-/*
-    Backend-ready:
-
-    apiFetch("/api/v1/users/me", {
-        method: "GET"
-    });
-
-    Об'єкт профілю:
-    {
-        accountName: "...",
-        accountDescription: "...",
-        avatar: "icons/skull.svg",
-        avatarColorStart: "#6d28d9",
-        avatarColorEnd: "#a855f7"
-    }
-*/
+loadServerUser();
+loadOptionalInfoFromBackend();
 
 /* Background icons */
 
@@ -321,6 +530,10 @@ function resetIcon(icon, firstStart = false) {
 }
 
 function createIconPool() {
+    if (!floatingIconsContainer) {
+        return;
+    }
+
     for (let i = 0; i < settings.poolSize; i++) {
         const img = document.createElement("img");
 
