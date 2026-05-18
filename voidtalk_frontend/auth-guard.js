@@ -1,18 +1,28 @@
 /*
     auth-guard.js
-    Аварийная стабильная версия.
+    Перевіряє авторизацію через backend cookie-сесію.
 
-    Проверяем вход ТОЛЬКО через localStorage:
-    - есть voidTalkUser -> пользователь вошёл;
-    - нет voidTalkUser -> гость.
+    localStorage використовується тільки як кеш для username, а не як джерело
+    правди для доступу до захищених сторінок.
 */
 
 (function() {
     const protectedPages = ["messages.html", "profile.html"];
-    const currentPage = getCurrentPage();
 
-    document.addEventListener("DOMContentLoaded", function() {
-        const isAuth = Boolean(getSavedUser());
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initAuthGuard);
+    } else {
+        initAuthGuard();
+    }
+
+    async function initAuthGuard() {
+        const currentPage = getCurrentPage();
+        const user = await getSessionUser();
+        const isAuth = Boolean(user);
+
+        if (!isAuth) {
+            localStorage.removeItem("voidTalkUser");
+        }
 
         if (!isAuth && protectedPages.includes(currentPage)) {
             window.location.replace("index.html");
@@ -26,24 +36,22 @@
 
         updateNavigation(isAuth);
         protectLinks(isAuth);
-    });
+    }
 
     function getCurrentPage() {
         const page = window.location.pathname.split("/").pop();
         return page || "index.html";
     }
 
-    function getSavedUser() {
-        const savedUser = localStorage.getItem("voidTalkUser");
-
-        if (!savedUser) {
+    async function getSessionUser() {
+        if (!window.voidTalkApi || typeof voidTalkApi.getCurrentSession !== "function") {
             return null;
         }
 
         try {
-            return JSON.parse(savedUser);
+            return await voidTalkApi.getCurrentSession();
         } catch (error) {
-            localStorage.removeItem("voidTalkUser");
+            console.log("Не вдалося перевірити сесію:", error);
             return null;
         }
     }
@@ -63,6 +71,10 @@
 
         links.forEach(function(link) {
             link.addEventListener("click", function(event) {
+                if (isLogoutLink(link)) {
+                    return;
+                }
+
                 const targetPage = getTargetPage(link);
 
                 if (!targetPage) {
@@ -81,6 +93,10 @@
                 }
             });
         });
+    }
+
+    function isLogoutLink(link) {
+        return link.id === "logoutButton" || link.dataset.authAction === "logout";
     }
 
     function updateNavigation(isAuth) {

@@ -3,11 +3,11 @@
     Сторінка повідомлень VoidTalk.
 
     Поточна логіка:
-    - пости завантажуються з backend;
+    - стрічка завантажується з backend разом з авторами, лайками й профілями;
     - новий пост створюється через backend;
     - сторінка НЕ повинна перезавантажуватись при створенні поста;
-    - username у міні-профілі береться з voidTalkUser;
-    - чужі автори поки показуються як user_ID.
+    - лайки створюються та видаляються через backend;
+    - модалка профілю відкриває дані з backend, а localStorage є тільки fallback.
 */
 
 /* Elements */
@@ -16,6 +16,7 @@ const messageForm = document.getElementById("messageForm");
 const messageInput = document.getElementById("messageInput");
 const messageCounter = document.getElementById("messageCounter");
 const messagesList = document.getElementById("messagesList");
+const publishMessageButton = document.getElementById("publishMessageButton");
 const filterButtons = document.querySelectorAll(".filter-btn");
 const messageSearch = document.getElementById("messageSearch");
 
@@ -38,6 +39,7 @@ const profileModalDescription = document.getElementById("profileModalDescription
 let activeFilter = "all";
 let searchQuery = "";
 let messages = [];
+const profileCache = new Map();
 
 /* Avatar mapping */
 
@@ -58,6 +60,36 @@ const avatarMap = {
 
 function getAvatarPathByIconId(iconId) {
     return avatarMap[Number(iconId)] || avatarMap[1];
+}
+
+function normalizeOptionalInfo(optionalInfo) {
+    return {
+        accountDescription: optionalInfo?.account_description || "Опис акаунту відсутній.",
+        avatar: getAvatarPathByIconId(optionalInfo?.icon_id || 1),
+        avatarColorStart: optionalInfo?.first_icon_color || "#6d28d9",
+        avatarColorEnd: optionalInfo?.second_icon_color || "#a855f7"
+    };
+}
+
+function normalizePublicProfile(user) {
+    const optionalInfo = normalizeOptionalInfo(user?.optional_info);
+
+    return {
+        id: user?.id || null,
+        accountName: user?.username || "username",
+        accountDescription: optionalInfo.accountDescription,
+        avatar: optionalInfo.avatar,
+        avatarColorStart: optionalInfo.avatarColorStart,
+        avatarColorEnd: optionalInfo.avatarColorEnd
+    };
+}
+
+function cacheProfile(profile) {
+    if (!profile || !profile.accountName) {
+        return;
+    }
+
+    profileCache.set(profile.accountName.toLowerCase(), profile);
 }
 
 /* Fallback messages */
@@ -88,7 +120,7 @@ async function loadMessagesFromBackend() {
             return;
         }
 
-        const response = await apiFetch("/api/v1/posts/recommendations?limit=30", {
+        const response = await apiFetch("/api/v1/posts/feed?limit=30", {
             method: "GET"
         });
 
@@ -117,13 +149,18 @@ async function loadMessagesFromBackend() {
         }
 
         messages = backendPosts.map(function(post) {
-            const username = "user_" + post.user_id;
+            const authorProfile = normalizePublicProfile(post.author);
+            const username = authorProfile.accountName;
+            const avatarText = username.charAt(0).toUpperCase();
+
+            cacheProfile(authorProfile);
 
             return {
                 id: post.id,
                 userId: post.user_id,
                 username: username,
-                avatar: username.charAt(0).toUpperCase(),
+                avatar: avatarText,
+                profile: authorProfile,
                 time: formatDate(post.created_at),
                 text: post.post_body || "",
                 likes: post.likes_count || 0,
@@ -131,7 +168,7 @@ async function loadMessagesFromBackend() {
                 tag: Array.isArray(post.hashtags) && post.hashtags.length > 0
                     ? String(post.hashtags[0]).replace("#", "")
                     : detectTag(post.post_body || ""),
-                liked: false
+                liked: Boolean(post.liked_by_current_user)
             };
         });
 
@@ -318,6 +355,13 @@ if (messageForm) {
     });
 }
 
+if (publishMessageButton) {
+    publishMessageButton.addEventListener("click", function(event) {
+        event.preventDefault();
+        createMessage();
+    });
+}
+
 /* Filters */
 
 filterButtons.forEach(function(button) {
@@ -371,29 +415,63 @@ function connectLikeButtons() {
     const likeButtons = document.querySelectorAll(".like-btn");
 
     likeButtons.forEach(function(button) {
-        button.addEventListener("click", function() {
+        button.addEventListener("click", async function() {
             const messageId = Number(button.getAttribute("data-id"));
-            toggleLike(messageId);
+            await toggleLike(messageId);
         });
     });
 }
 
-function toggleLike(messageId) {
-    messages = messages.map(function(message) {
-        if (message.id !== messageId) {
-            return message;
-        }
-
-        const liked = !message.liked;
-
-        return {
-            ...message,
-            liked: liked,
-            likes: liked ? message.likes + 1 : Math.max(message.likes - 1, 0)
-        };
+async function toggleLike(messageId) {
+    const message = messages.find(function(item) {
+        return item.id === messageId;
     });
 
-    renderMessages();
+    if (!message) {
+        return;
+    }
+
+    try {
+        const response = await apiFetch(`/api/v1/posts/${messageId}/likes`, {
+            method: message.liked ? "DELETE" : "POST"
+        });
+
+        if (
+            !response.ok &&
+            !(response.status === 409 && !message.liked) &&
+            !(response.status === 404 && message.liked)
+        ) {
+            const errorMessage = await voidTalkApi.getApiErrorMessage(
+                response,
+                "Не вдалося оновити лайк."
+            );
+
+            throw new Error(errorMessage);
+        }
+
+        const wasLiked = message.liked;
+        const liked = response.status === 404 ? false : !wasLiked;
+        const likesDelta = response.status === 409 || response.status === 404
+            ? 0
+            : liked ? 1 : -1;
+
+        messages = messages.map(function(item) {
+            if (item.id !== messageId) {
+                return item;
+            }
+
+            return {
+                ...item,
+                liked: liked,
+                likes: Math.max(item.likes + likesDelta, 0)
+            };
+        });
+
+        renderMessages();
+    } catch (error) {
+        console.log("Не вдалося синхронізувати лайк з backend:", error);
+        alert("Не вдалося оновити лайк. Перевірте авторизацію або backend.");
+    }
 }
 
 /* Tags */
@@ -467,7 +545,33 @@ function connectProfileOpenButtons() {
     });
 }
 
-function getUserProfileByUsername(username) {
+async function getUserProfileByUsername(username) {
+    const cachedProfile = profileCache.get(username.toLowerCase());
+
+    if (cachedProfile) {
+        return cachedProfile;
+    }
+
+    try {
+        const response = await apiFetch(`/api/v1/users/profiles/${encodeURIComponent(username)}`, {
+            method: "GET"
+        });
+
+        if (response.ok) {
+            const user = await voidTalkApi.readJsonResponse(response);
+            const backendProfile = normalizePublicProfile(user);
+
+            cacheProfile(backendProfile);
+            return backendProfile;
+        }
+
+        console.log(
+            await voidTalkApi.getApiErrorMessage(response, "Не вдалося завантажити профіль.")
+        );
+    } catch (error) {
+        console.log("Не вдалося завантажити профіль з backend:", error);
+    }
+
     const currentUser = getCurrentUserFromStorage();
 
     if (
@@ -511,7 +615,7 @@ function getUserProfileByUsername(username) {
     };
 }
 
-function openUserProfile(username) {
+async function openUserProfile(username) {
     if (
         !profileModal ||
         !profileModalAvatar ||
@@ -522,7 +626,13 @@ function openUserProfile(username) {
         return;
     }
 
-    const profile = getUserProfileByUsername(username);
+    profileModalName.textContent = "@" + username;
+    profileModalDescription.textContent = "Завантаження профілю...";
+    profileModalAvatarImg.src = "icons/skull.svg";
+    profileModalAvatar.style.background = "linear-gradient(135deg, #6d28d9, #a855f7)";
+    profileModal.classList.add("active");
+
+    const profile = await getUserProfileByUsername(username);
 
     profileModalName.textContent = "@" + profile.accountName;
     profileModalDescription.textContent = profile.accountDescription || "Опис акаунту відсутній.";
@@ -534,7 +644,6 @@ function openUserProfile(username) {
         linear-gradient(135deg, ${profile.avatarColorStart}, ${profile.avatarColorEnd})
     `;
 
-    profileModal.classList.add("active");
 }
 
 function closeUserProfile() {
@@ -593,12 +702,58 @@ function loadMiniProfileFromStorage() {
     return profile;
 }
 
-function renderMiniProfileTopBar() {
+async function loadMiniProfileFromBackend() {
+    if (!window.voidTalkApi || typeof apiFetch !== "function") {
+        return null;
+    }
+
+    const user = await voidTalkApi.getCurrentSession();
+
+    if (!user) {
+        return null;
+    }
+
+    let optionalInfo = null;
+
+    const optionalInfoResponse = await apiFetch("/api/v1/users/me/optional-info", {
+        method: "GET"
+    });
+
+    if (optionalInfoResponse.ok) {
+        optionalInfo = await voidTalkApi.readJsonResponse(optionalInfoResponse);
+    }
+
+    localStorage.setItem("voidTalkUser", JSON.stringify(user));
+
+    if (optionalInfo) {
+        const optionalProfile = normalizeOptionalInfo(optionalInfo);
+
+        localStorage.setItem("voidTalkProfile", JSON.stringify(optionalProfile));
+    }
+
+    return {
+        ...defaultMiniProfile,
+        ...normalizeOptionalInfo(optionalInfo),
+        accountName: user.username || "username"
+    };
+}
+
+async function renderMiniProfileTopBar() {
     if (!miniProfileName || !miniProfileAvatar || !miniProfileAvatarImg) {
         return;
     }
 
-    const profile = loadMiniProfileFromStorage();
+    let profile = null;
+
+    try {
+        profile = await loadMiniProfileFromBackend();
+    } catch (error) {
+        console.log("Не вдалося завантажити міні-профіль з backend:", error);
+    }
+
+    if (!profile) {
+        profile = loadMiniProfileFromStorage();
+    }
 
     miniProfileName.textContent = profile.accountName
         ? "@" + profile.accountName
@@ -617,6 +772,7 @@ function renderMiniProfileTopBar() {
 if (logoutButton) {
     logoutButton.addEventListener("click", async function(event) {
         event.preventDefault();
+        event.stopImmediatePropagation();
 
         try {
             if (typeof apiFetch === "function") {

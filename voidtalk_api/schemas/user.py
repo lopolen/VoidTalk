@@ -83,3 +83,7 @@ class UserOptionalInfoRead(BaseModel):
     first_icon_color: str
     second_icon_color: str
     icon_id: int
+
+
+class UserPublicProfileRead(UserPublicRead):
+    optional_info: UserOptionalInfoRead | None = None

@@ -26,6 +26,25 @@ apiFetch("/api/v1/users/me", {
 
 `apiFetch` сам додасть `API_BASE_URL` і `credentials: "include"`.
 
+## Стрічка повідомлень
+
+Для `messages.html` використовуйте повний feed endpoint:
+
+```http
+GET /api/v1/posts/feed?limit=30
+```
+
+Він повертає автора, optional-info профілю, хештеги, кількість лайків і
+`liked_by_current_user`. Це краще за локальні `user_ID` або локальний стан
+лайків на frontend.
+
+Лайки синхронізуються напряму з backend:
+
+```http
+POST   /api/v1/posts/{post_id}/likes
+DELETE /api/v1/posts/{post_id}/likes
+```
+
 ## Cookie-сесія
 
 Авторизація тримається на cookie `voidtalk_session`, яку backend виставляє після login.

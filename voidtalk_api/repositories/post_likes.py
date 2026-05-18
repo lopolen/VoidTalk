@@ -36,3 +36,28 @@ class PostLikeRepository:
                 PostUserLike.post_id == post_id
             )
         )
+
+    def count_by_post_ids(self, post_ids: list[int]) -> dict[int, int]:
+        if not post_ids:
+            return {}
+
+        rows = self.db.execute(
+            select(PostUserLike.post_id, func.count())
+            .where(PostUserLike.post_id.in_(post_ids))
+            .group_by(PostUserLike.post_id)
+        )
+
+        return {post_id: likes_count for post_id, likes_count in rows}
+
+    def list_liked_post_ids(self, user_id: int, post_ids: list[int]) -> set[int]:
+        if not post_ids:
+            return set()
+
+        rows = self.db.scalars(
+            select(PostUserLike.post_id).where(
+                PostUserLike.user_id == user_id,
+                PostUserLike.post_id.in_(post_ids),
+            )
+        )
+
+        return set(rows)
