@@ -37,3 +37,10 @@ Table posts {
 
   created_at timestamp [default: `now()`, not null]
 }
+
+Table posts_users_likes {
+  user_id integer [primary key, ref: > users.id]
+  post_id integer [primary key, ref: > posts.id]
+
+  created_at timestamp [default: `now()`, not null]
+}
