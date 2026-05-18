@@ -6,16 +6,36 @@ from voidtalk_api.core.exceptions import (
     InvalidEmail,
     PasswordResetRequired,
     ResourceAlreadyExists,
+    ResourceNotFound,
 )
-from voidtalk_api.schemas.user import UserLogin, UserRead, UserRegister
+from voidtalk_api.api.deps import get_current_user
+from voidtalk_api.models.user import User
+from voidtalk_api.schemas.user import UserLogin, UserPublicRead, UserRead, UserRegister
 from voidtalk_api.services.auth import (
     SESSION_COOKIE_MAX_AGE,
     SESSION_COOKIE_NAME,
     AuthService,
 )
+from voidtalk_api.services.users import UserService
 
 
 router = APIRouter(prefix="/users", tags=["users"])
+
+
+@router.get("/me", response_model=UserRead)
+def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+
+@router.get("/search/{username}", response_model=UserPublicRead)
+def search_user_by_username(username: str, db: Session = Depends(get_db)):
+    try:
+        return UserService(db).get_user_by_username(username)
+    except ResourceNotFound as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
 
 
 @router.post(

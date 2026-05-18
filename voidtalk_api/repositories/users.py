@@ -18,6 +18,9 @@ class UserRepository:
             select(User).where(or_(User.username == username, User.email == email))
         )
 
+    def get_by_username(self, username: str) -> User | None:
+        return self.db.scalar(select(User).where(User.username == username))
+
     def get_by_login(self, username: str, email: str) -> User | None:
         return self.get_by_username_or_email(username, email)
 

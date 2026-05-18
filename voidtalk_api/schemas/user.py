@@ -37,3 +37,11 @@ class UserRead(BaseModel):
     username: str
     email: EmailStr
     created_at: datetime
+
+
+class UserPublicRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    username: str
+    created_at: datetime
