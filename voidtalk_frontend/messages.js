@@ -9,6 +9,7 @@
     - localStorage;
     - підготовка до backend;
     - міні-профіль зверху з даними зі сторінки профілю;
+    - відкриття профілю користувача при натисканні на аватарку або нік;
     - logout;
     - Easter egg;
     - літаючі іконки.
@@ -30,6 +31,14 @@ const miniProfileName = document.getElementById("miniProfileName");
 const miniProfileAvatar = document.getElementById("miniProfileAvatar");
 const miniProfileAvatarImg = document.getElementById("miniProfileAvatarImg");
 const logoutButton = document.getElementById("logoutButton");
+
+const profileModal = document.getElementById("profileModal");
+const profileModalBackdrop = document.getElementById("profileModalBackdrop");
+const profileModalClose = document.getElementById("profileModalClose");
+const profileModalAvatar = document.getElementById("profileModalAvatar");
+const profileModalAvatarImg = document.getElementById("profileModalAvatarImg");
+const profileModalName = document.getElementById("profileModalName");
+const profileModalDescription = document.getElementById("profileModalDescription");
 
 let activeFilter = "all";
 let searchQuery = "";
@@ -148,10 +157,23 @@ function renderMessages() {
 
         messageCard.innerHTML = `
             <div class="post-top">
-                <div class="avatar">${escapeHtml(message.avatar)}</div>
+                <button
+                    class="avatar profile-open-btn"
+                    type="button"
+                    data-username="${escapeHtml(message.username)}"
+                    aria-label="Відкрити профіль користувача ${escapeHtml(message.username)}"
+                >
+                    ${escapeHtml(message.avatar)}
+                </button>
 
                 <div>
-                    <h3>@${escapeHtml(message.username)}</h3>
+                    <h3
+                        class="profile-name-open"
+                        data-username="${escapeHtml(message.username)}"
+                    >
+                        @${escapeHtml(message.username)}
+                    </h3>
+
                     <p>${escapeHtml(message.time)}</p>
                 </div>
             </div>
@@ -184,6 +206,18 @@ function renderMessages() {
         button.addEventListener("click", function() {
             const messageId = Number(button.getAttribute("data-id"));
             toggleLike(messageId);
+        });
+    });
+
+    const profileButtons = document.querySelectorAll(".profile-open-btn, .profile-name-open");
+
+    profileButtons.forEach(function(button) {
+        button.addEventListener("click", function() {
+            const username = button.getAttribute("data-username");
+
+            if (username) {
+                openUserProfile(username);
+            }
         });
     });
 }
@@ -447,6 +481,147 @@ function escapeHtml(value) {
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
 }
+
+/* User profile modal */
+
+const demoProfiles = {
+    mykhailo: {
+        accountName: "mykhailo",
+        accountDescription: "Працюю над frontend для VoidTalk.",
+        avatar: "icons/react.svg",
+        avatarColorStart: "#6d28d9",
+        avatarColorEnd: "#a855f7"
+    },
+    admin: {
+        accountName: "admin",
+        accountDescription: "Адміністратор платформи VoidTalk.",
+        avatar: "icons/command.svg",
+        avatarColorStart: "#4c1d95",
+        avatarColorEnd: "#9333ea"
+    },
+    nikita: {
+        accountName: "nikita",
+        accountDescription: "Працюю над backend частиною проєкту.",
+        avatar: "icons/webhook.svg",
+        avatarColorStart: "#0f766e",
+        avatarColorEnd: "#22c55e"
+    },
+    roman: {
+        accountName: "roman",
+        accountDescription: "Люблю обговорювати ідеї, теми та хештеги.",
+        avatar: "icons/send-alt.svg",
+        avatarColorStart: "#7c2d12",
+        avatarColorEnd: "#f97316"
+    },
+    frontend_dev: {
+        accountName: "frontend_dev",
+        accountDescription: "Роблю інтерфейси, анімації та красиві сторінки.",
+        avatar: "icons/cube-inside.svg",
+        avatarColorStart: "#581c87",
+        avatarColorEnd: "#ec4899"
+    },
+    void_user: {
+        accountName: "void_user",
+        accountDescription: "Звичайний користувач VoidTalk.",
+        avatar: "icons/skull.svg",
+        avatarColorStart: "#6d28d9",
+        avatarColorEnd: "#a855f7"
+    }
+};
+
+function getSavedOwnProfile() {
+    const savedProfile = localStorage.getItem("voidTalkProfile");
+
+    if (!savedProfile) {
+        return null;
+    }
+
+    try {
+        return JSON.parse(savedProfile);
+    } catch (error) {
+        console.log("Не вдалося прочитати власний профіль:", error);
+        return null;
+    }
+}
+
+function getUserProfileByUsername(username) {
+    const normalizedUsername = username.toLowerCase();
+    const ownProfile = getSavedOwnProfile();
+
+    if (
+        ownProfile &&
+        ownProfile.accountName &&
+        ownProfile.accountName.toLowerCase() === normalizedUsername
+    ) {
+        return {
+            accountName: ownProfile.accountName,
+            accountDescription: ownProfile.accountDescription || "Опис акаунту відсутній.",
+            avatar: ownProfile.avatar || "icons/skull.svg",
+            avatarColorStart: ownProfile.avatarColorStart || "#6d28d9",
+            avatarColorEnd: ownProfile.avatarColorEnd || "#a855f7"
+        };
+    }
+
+    if (demoProfiles[normalizedUsername]) {
+        return demoProfiles[normalizedUsername];
+    }
+
+    return {
+        accountName: username,
+        accountDescription: "Опис акаунту відсутній.",
+        avatar: "icons/skull.svg",
+        avatarColorStart: "#6d28d9",
+        avatarColorEnd: "#a855f7"
+    };
+}
+
+function openUserProfile(username) {
+    if (
+        !profileModal ||
+        !profileModalAvatar ||
+        !profileModalAvatarImg ||
+        !profileModalName ||
+        !profileModalDescription
+    ) {
+        return;
+    }
+
+    const profile = getUserProfileByUsername(username);
+
+    profileModalName.textContent = "@" + profile.accountName;
+    profileModalDescription.textContent = profile.accountDescription || "Опис акаунту відсутній.";
+
+    profileModalAvatarImg.src = profile.avatar;
+    profileModalAvatarImg.alt = "Аватар користувача";
+
+    profileModalAvatar.style.background = `
+        linear-gradient(135deg, ${profile.avatarColorStart}, ${profile.avatarColorEnd})
+    `;
+
+    profileModal.classList.add("active");
+}
+
+function closeUserProfile() {
+    if (!profileModal) {
+        return;
+    }
+
+    profileModal.classList.remove("active");
+}
+
+if (profileModalClose) {
+    profileModalClose.addEventListener("click", closeUserProfile);
+}
+
+if (profileModalBackdrop) {
+    profileModalBackdrop.addEventListener("click", closeUserProfile);
+}
+
+document.addEventListener("keydown", function(event) {
+    if (event.key === "Escape") {
+        closeUserProfile();
+    }
+});
 
 /* Mini profile in top bar */
 

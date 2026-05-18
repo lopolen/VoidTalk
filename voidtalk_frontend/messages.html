@@ -21,7 +21,7 @@
             <a href="index.html" class="logo" id="logo">VoidTalk</a>
 
             <nav class="nav">
-                <a href="index.html">Головна</a>
+                <a href="#">Головна</a>
                 <a href="#" class="active-page">Повідомлення</a>
                 <a href="about.html">Про сайт</a>
                 <a href="profile.html">Профіль</a>
@@ -115,7 +115,40 @@
         </section>
 
     </main>
+<div class="profile-modal" id="profileModal">
+    <div class="profile-modal-backdrop" id="profileModalBackdrop"></div>
 
+    <div class="profile-modal-card">
+        <button class="profile-modal-close" id="profileModalClose" type="button">×</button>
+
+        <div class="profile-modal-avatar" id="profileModalAvatar">
+            <img id="profileModalAvatarImg" src="icons/skull.svg" alt="Аватар профілю">
+        </div>
+
+        <h2 id="profileModalName">@username</h2>
+
+        <p id="profileModalDescription">
+            Опис акаунту відсутній.
+        </p>
+
+        <div class="profile-modal-stats">
+            <div>
+                <strong>12</strong>
+                <span>Постів</span>
+            </div>
+
+            <div>
+                <strong>28</strong>
+                <span>Коментарів</span>
+            </div>
+
+            <div>
+                <strong>3</strong>
+                <span>Тем</span>
+            </div>
+        </div>
+    </div>
+</div>
     <footer class="footer">
         <div class="stamp">
             <p>VoidTalk</p>
@@ -127,6 +160,7 @@
 
     <script src="config.js"></script>
     <script src="api.js"></script>
+    <script src="auth-guard.js"></script>
     <script src="messages.js"></script>
 </body>
 </html>

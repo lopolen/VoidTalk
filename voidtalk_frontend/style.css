@@ -1643,3 +1643,153 @@ body {
         transform: translateY(0);
     }
 }
+/* ===== Profile modal on messages page ===== */
+
+.profile-open-btn {
+    border: none;
+    cursor: pointer;
+    color: white;
+    font-family: inherit;
+    transition: 0.25s ease;
+}
+
+.profile-open-btn:hover {
+    transform: scale(1.06);
+    box-shadow: 0 0 18px rgba(168, 85, 247, 0.4);
+}
+
+.profile-name-open {
+    cursor: pointer;
+    transition: 0.25s ease;
+}
+
+.profile-name-open:hover {
+    color: #d8b4fe;
+    text-shadow: 0 0 12px rgba(168, 85, 247, 0.7);
+}
+
+.profile-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.profile-modal.active {
+    display: flex;
+}
+
+.profile-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(5, 0, 13, 0.72);
+    backdrop-filter: blur(8px);
+}
+
+.profile-modal-card {
+    position: relative;
+    z-index: 2;
+    width: min(420px, 92vw);
+    padding: 34px;
+    border-radius: 28px;
+    background: rgba(17, 8, 31, 0.92);
+    border: 1px solid rgba(192, 132, 252, 0.22);
+    box-shadow: 0 0 40px rgba(88, 28, 135, 0.42);
+    text-align: center;
+    animation: profileModalOpen 0.35s ease both;
+}
+
+@keyframes profileModalOpen {
+    from {
+        opacity: 0;
+        transform: translateY(24px) scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.profile-modal-close {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(10, 4, 20, 0.82);
+    color: #e9d5ff;
+    font-size: 24px;
+    cursor: pointer;
+    transition: 0.25s ease;
+}
+
+.profile-modal-close:hover {
+    background: rgba(109, 40, 217, 0.45);
+    color: white;
+}
+
+.profile-modal-avatar {
+    width: 118px;
+    height: 118px;
+    margin: 0 auto 18px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6d28d9, #a855f7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 28px rgba(109, 40, 217, 0.38);
+}
+
+.profile-modal-avatar img {
+    width: 58px;
+    height: 58px;
+    filter: invert(1);
+    opacity: 0.95;
+}
+
+.profile-modal-card h2 {
+    font-size: 28px;
+    margin-bottom: 12px;
+    color: #f5f3ff;
+}
+
+.profile-modal-card p {
+    color: var(--text-muted);
+    line-height: 1.7;
+    min-height: 42px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+.profile-modal-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 26px;
+}
+
+.profile-modal-stats div {
+    padding: 14px 8px;
+    border-radius: 18px;
+    background: rgba(10, 4, 20, 0.72);
+    border: 1px solid rgba(192, 132, 252, 0.14);
+}
+
+.profile-modal-stats strong {
+    display: block;
+    font-size: 20px;
+    margin-bottom: 4px;
+    color: #f5f3ff;
+}
+
+.profile-modal-stats span {
+    color: var(--text-muted);
+    font-size: 12px;
+}
