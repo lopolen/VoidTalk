@@ -14,9 +14,11 @@ from voidtalk_api.schemas.post import (
     PostLikeCountRead,
     PostLikeRead,
     PostRead,
+    RecommendedPostRead,
 )
 from voidtalk_api.services.post_likes import PostLikeService
 from voidtalk_api.services.posts import PostService
+from voidtalk_api.services.recommendations import PostRecommendationService
 
 
 router = APIRouter(prefix="/posts", tags=["posts"])
@@ -29,6 +31,18 @@ def create_post(
     db: Session = Depends(get_db),
 ):
     return PostService(db).create_post(post_data, current_user)
+
+
+@router.get("/recommendations", response_model=list[RecommendedPostRead])
+def list_recommended_posts(
+    limit: int | None = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return PostRecommendationService(db).list_recommendations(
+        current_user=current_user,
+        limit=limit,
+    )
 
 
 @router.get("/user/{user_id}", response_model=list[PostRead])
