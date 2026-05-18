@@ -49,22 +49,21 @@ if (loginForm) {
         };
 
         try {
-            const response = await fetch("/api/v1/users/login", {
+            const response = await apiFetch("/api/v1/users/login", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
                 },
-                credentials: "include",
                 body: JSON.stringify(formData)
             });
 
             if (!response.ok) {
-                const error = await response.json();
-                alert(error.detail || "Помилка входу");
+                const errorMessage = await voidTalkApi.getApiErrorMessage(response, "Помилка входу");
+                alert(errorMessage);
                 return;
             }
 
-            const user = await response.json();
+            const user = await voidTalkApi.readJsonResponse(response);
 
             localStorage.setItem("voidTalkUser", JSON.stringify(user));
 
@@ -73,7 +72,10 @@ if (loginForm) {
 
         } catch (error) {
             console.log("Помилка входу:", error);
-            alert("Не вдалося підключитися до сервера. Перевірте, чи запущений backend.");
+            alert(
+                "Не вдалося підключитися до сервера. " +
+                `Перевірте, чи запущений backend на ${voidTalkApi.getApiBaseUrl()}.`
+            );
         }
     });
 }
@@ -91,22 +93,41 @@ if (registerForm) {
         };
 
         try {
-            const response = await fetch("/api/v1/users/register", {
+            const response = await apiFetch("/api/v1/users/register", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
                 },
-                credentials: "include",
                 body: JSON.stringify(formData)
             });
 
             if (!response.ok) {
-                const error = await response.json();
-                alert(error.detail || "Помилка реєстрації");
+                const errorMessage = await voidTalkApi.getApiErrorMessage(response, "Помилка реєстрації");
+                alert(errorMessage);
                 return;
             }
 
-            const user = await response.json();
+            const user = await voidTalkApi.readJsonResponse(response);
+            const loginResponse = await apiFetch("/api/v1/users/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    login: formData.email,
+                    password: formData.password
+                })
+            });
+
+            if (!loginResponse.ok) {
+                const errorMessage = await voidTalkApi.getApiErrorMessage(
+                    loginResponse,
+                    "Реєстрація успішна, але автоматичний вхід не вдався."
+                );
+                alert(errorMessage);
+                showLogin();
+                return;
+            }
 
             localStorage.setItem("voidTalkUser", JSON.stringify(user));
             localStorage.setItem("voidTalkProfileNeedsSetup", "true");
@@ -116,7 +137,10 @@ if (registerForm) {
 
         } catch (error) {
             console.log("Помилка реєстрації:", error);
-            alert("Не вдалося підключитися до сервера. Перевірте, чи запущений backend.");
+            alert(
+                "Не вдалося підключитися до сервера. " +
+                `Перевірте, чи запущений backend на ${voidTalkApi.getApiBaseUrl()}.`
+            );
         }
     });
 }

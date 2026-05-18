@@ -65,7 +65,7 @@
             <div class="profile-settings-card">
                 <h2>Редагування профілю</h2>
 
-                <form id="profileForm" class="profile-form" action="/api/profile" method="POST">
+                <form id="profileForm" class="profile-form" action="http://127.0.0.1:8000/api/v1/users/me" method="GET">
 
                     <label for="accountName">Назва акаунту</label>
                     <input
@@ -189,6 +189,7 @@
     </footer>
 
     <audio id="logoSound" src="audio/click-sound.mp3" preload="auto"></audio>
+    <script src="api.js"></script>
     <script src="profile.js"></script>
 </body>
 </html>

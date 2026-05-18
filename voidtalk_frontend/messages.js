@@ -282,28 +282,26 @@ messageForm.addEventListener("submit", async function(event) {
 
         Backend сам визначає користувача через cookie voidtalk_session.
 
-        Якщо frontend і backend на одному домені:
-        fetch("/api/v1/posts", ...)
+        Через спільний helper:
+        apiFetch("/api/v1/posts", ...)
 
         Якщо frontend відкритий через Live Server, а backend на 127.0.0.1:8000:
-        fetch("http://127.0.0.1:8000/api/v1/posts", ...)
-        Але тоді на backend може знадобитися CORS.
+        apiFetch автоматично відправить запит на backend.
     */
 
     try {
-        const response = await fetch("/api/v1/posts", {
+        const response = await apiFetch("/api/v1/posts", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            credentials: "include",
             body: JSON.stringify({
                 post_body: text
             })
         });
 
         if (response.ok) {
-            const savedPost = await response.json();
+            const savedPost = await voidTalkApi.readJsonResponse(response);
 
             newMessage.id = savedPost.id;
             newMessage.text = savedPost.post_body;
@@ -311,7 +309,11 @@ messageForm.addEventListener("submit", async function(event) {
 
             console.log("Пост збережено через backend:", savedPost);
         } else {
-            console.log("Backend не прийняв пост. Показуємо frontend-версію.");
+            const errorMessage = await voidTalkApi.getApiErrorMessage(
+                response,
+                "Backend не прийняв пост."
+            );
+            console.log(errorMessage, "Показуємо frontend-версію.");
         }
     } catch (error) {
         console.log("Backend недоступний. Працює тестовий frontend-режим:", error);
@@ -360,16 +362,15 @@ async function loadMessagesFromBackend() {
         Потім можна увімкнути цей код:
 
         try {
-            const response = await fetch("/api/v1/posts", {
-                method: "GET",
-                credentials: "include"
+            const response = await apiFetch("/api/v1/posts", {
+                method: "GET"
             });
 
             if (!response.ok) {
                 throw new Error("Не вдалося отримати повідомлення з backend.");
             }
 
-            const backendPosts = await response.json();
+            const backendPosts = await voidTalkApi.readJsonResponse(response);
 
             messages = backendPosts.map(function(post) {
                 return {

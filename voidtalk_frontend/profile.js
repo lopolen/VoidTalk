@@ -195,13 +195,8 @@ renderProfile();
 /*
     Backend-ready:
 
-    fetch("/api/profile", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        credentials: "include",
-        body: JSON.stringify(currentProfile)
+    apiFetch("/api/v1/users/me", {
+        method: "GET"
     });
 
     Об'єкт профілю:

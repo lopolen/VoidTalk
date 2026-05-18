@@ -61,7 +61,7 @@
 
                 <div class="forms-wrapper">
 
-                    <form id="loginForm" class="form active-form" action="/api/login" method="POST">
+                    <form id="loginForm" class="form active-form" action="http://127.0.0.1:8000/api/v1/users/login" method="POST">
                         <h2>Увійти</h2>
 
                         <label for="loginEmail" class="input-label">
@@ -97,7 +97,7 @@
                         </p>
                     </form>
 
-                    <form id="registerForm" class="form" action="/api/register" method="POST">
+                    <form id="registerForm" class="form" action="http://127.0.0.1:8000/api/v1/users/register" method="POST">
                         <h2>Реєстрація</h2>
 
                         <label for="registerUsername" class="input-label">
@@ -134,7 +134,7 @@
                             name="password"
                             type="password"
                             placeholder="Створіть пароль"
-                            minlength="6"
+                            minlength="8"
                             required
                         >
 
@@ -220,6 +220,7 @@
     </footer>
 
     <audio id="logoSound" src="audio/click-sound.mp3" preload="auto"></audio>
+    <script src="api.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
