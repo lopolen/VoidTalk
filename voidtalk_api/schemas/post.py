@@ -35,3 +35,9 @@ class PostLikeRead(BaseModel):
 class PostLikeCountRead(BaseModel):
     post_id: int
     likes_count: int
+
+
+class RecommendedPostRead(PostRead):
+    likes_count: int
+    hashtags: list[str]
+    recommendation_score: float
