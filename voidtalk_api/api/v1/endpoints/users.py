@@ -14,6 +14,7 @@ from voidtalk_api.schemas.user import (
     UserLogin,
     UserOptionalInfoRead,
     UserOptionalInfoReplace,
+    UserPublicProfileRead,
     UserPublicRead,
     UserRead,
     UserRegister,
@@ -57,6 +58,17 @@ def replace_my_optional_info(
 
 @router.get("/search/{username}", response_model=UserPublicRead)
 def search_user_by_username(username: str, db: Session = Depends(get_db)):
+    try:
+        return UserService(db).get_user_by_username(username)
+    except ResourceNotFound as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+
+@router.get("/profiles/{username}", response_model=UserPublicProfileRead)
+def get_public_profile_by_username(username: str, db: Session = Depends(get_db)):
     try:
         return UserService(db).get_user_by_username(username)
     except ResourceNotFound as exc:

@@ -14,17 +14,49 @@
 
     <div class="floating-icons" id="floatingIcons" aria-hidden="true"></div>
 
-    <header class="header">
-        <a href="index.html" class="logo" id="logo">VoidTalk</a>
+    <div class="top-interface">
+        <a href="index.html" class="logout-button" id="logoutButton" data-auth-action="logout">Вийти</a>
 
-        <nav class="nav">
-            <a href="index.html">Головна</a>
-            <a href="#" class="active-page">Повідомлення</a>
-            <a href="hashtags.html">Хештеги</a>
-            <a href="about.html">Про сайт</a>
-            <a href="profile.html">Профіль</a>
-        </nav>
-    </header>
+        <header class="header">
+            <a href="index.html" class="logo" id="logo">VoidTalk</a>
+
+            <nav class="nav">
+                <a href="index.html">Головна</a>
+                <a href="messages.html" class="active-page">Повідомлення</a>
+                <a href="my-posts.html">Мої пости</a>
+                <a href="about.html">Про сайт</a>
+                <a href="profile.html">Профіль</a>
+            </nav>
+        </header>
+
+        <aside class="mini-profile-bar">
+            <div class="mini-profile-avatar" id="miniProfileAvatar">
+                <img id="miniProfileAvatarImg" src="icons/skull.svg" alt="Аватар користувача">
+            </div>
+
+            <div class="mini-profile-info">
+                <strong id="miniProfileName">@username</strong>
+                <span>активний акаунт</span>
+            </div>
+
+            <div class="mini-profile-stats">
+                <div>
+                    <strong id="miniPostsCount">0</strong>
+                    <span>Постів</span>
+                </div>
+
+                <div>
+                    <strong id="miniLikesCount">0</strong>
+                    <span>Лайків</span>
+                </div>
+
+                <div>
+                    <strong id="miniTopicsCount">0</strong>
+                    <span>Тем</span>
+                </div>
+            </div>
+        </aside>
+    </div>
 
     <main class="main messages-main">
 
@@ -35,21 +67,50 @@
                 <textarea
                     id="messageInput"
                     maxlength="500"
-                    placeholder="Напишіть своє повідомлення..."
+                    placeholder="Поділіться думкою, питанням або темою з #хештегом"
                     required
                 ></textarea>
 
                 <div class="message-form-bottom">
                     <span id="messageCounter">0 / 500</span>
-                    <button type="submit" class="primary-btn">Опублікувати</button>
+                    <button id="publishMessageButton" type="submit" class="primary-btn">Опублікувати</button>
                 </div>
+
+                <p class="form-status" id="messageStatus" aria-live="polite"></p>
             </form>
         </section>
 
         <section class="messages-toolbar">
             <div>
                 <div class="badge">Стрічка повідомлень</div>
-                <h2>Усі повідомлення</h2>
+                <h2 id="messagesTitle">Усі повідомлення</h2>
+                <p class="toolbar-description" id="messagesDescription">
+                    Останні пости всіх користувачів.
+                </p>
+            </div>
+
+            <div class="feed-tabs" role="tablist" aria-label="Режим стрічки">
+                <button
+                    class="feed-tab active-feed-tab"
+                    id="feedTab"
+                    type="button"
+                    data-mode="feed"
+                    role="tab"
+                    aria-selected="true"
+                >
+                    Фід
+                </button>
+
+                <button
+                    class="feed-tab"
+                    id="recommendationsTab"
+                    type="button"
+                    data-mode="recommendations"
+                    role="tab"
+                    aria-selected="false"
+                >
+                    Рекомендації
+                </button>
             </div>
 
             <div class="message-search-box">
@@ -64,12 +125,15 @@
                 <button class="secondary-btn filter-btn active-filter" type="button" data-filter="all">
                     Усі
                 </button>
+
                 <button class="secondary-btn filter-btn" type="button" data-filter="frontend">
                     #frontend
                 </button>
+
                 <button class="secondary-btn filter-btn" type="button" data-filter="backend">
                     #backend
                 </button>
+
                 <button class="secondary-btn filter-btn" type="button" data-filter="random">
                     #random
                 </button>
@@ -81,7 +145,40 @@
         </section>
 
     </main>
+<div class="profile-modal" id="profileModal">
+    <div class="profile-modal-backdrop" id="profileModalBackdrop"></div>
 
+    <div class="profile-modal-card">
+        <button class="profile-modal-close" id="profileModalClose" type="button">×</button>
+
+        <div class="profile-modal-avatar" id="profileModalAvatar">
+            <img id="profileModalAvatarImg" src="icons/skull.svg" alt="Аватар профілю">
+        </div>
+
+        <h2 id="profileModalName">@username</h2>
+
+        <p id="profileModalDescription">
+            Опис акаунту відсутній.
+        </p>
+
+        <div class="profile-modal-stats">
+            <div>
+                <strong id="profileModalPostsCount">0</strong>
+                <span>Постів</span>
+            </div>
+
+            <div>
+                <strong id="profileModalLikesCount">0</strong>
+                <span>Лайків</span>
+            </div>
+
+            <div>
+                <strong id="profileModalTopicsCount">0</strong>
+                <span>Тем</span>
+            </div>
+        </div>
+    </div>
+</div>
     <footer class="footer">
         <div class="stamp">
             <p>VoidTalk</p>
@@ -93,6 +190,7 @@
 
     <script src="config.js"></script>
     <script src="api.js"></script>
+    <script src="auth-guard.js"></script>
     <script src="messages.js"></script>
 </body>
 </html>

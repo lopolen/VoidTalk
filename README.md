@@ -9,6 +9,8 @@ VoidTalk - навчальна міні-соціальна платформа з 
 - Перевірка поточного користувача через `GET /api/v1/users/me`.
 - Пошук користувача за username.
 - Створення постів авторизованим користувачем.
+- Повна стрічка постів для frontend із авторами, профілями, хештегами та станом лайка.
+- Лайки постів через backend.
 - MVP-рекомендації постів: релевантність по хештегах із штрафом за популярність.
 - CORS для роботи frontend і backend на різних dev-портах.
 
@@ -166,12 +168,29 @@ POST   /api/v1/users/register
 POST   /api/v1/users/login
 POST   /api/v1/users/logout
 GET    /api/v1/users/me
+GET    /api/v1/users/me/optional-info
 GET    /api/v1/users/search/{username}
+GET    /api/v1/users/profiles/{username}
 POST   /api/v1/posts
+GET    /api/v1/posts/feed
 GET    /api/v1/posts/recommendations
 GET    /api/v1/posts/user/{user_id}
+POST   /api/v1/posts/{post_id}/likes
+DELETE /api/v1/posts/{post_id}/likes
 DELETE /api/v1/posts/{post_id}
 ```
+
+## Frontend feed
+
+Основна сторінка повідомлень використовує:
+
+```http
+GET /api/v1/posts/feed?limit=30
+```
+
+Цей endpoint повертає пости разом з автором, optional profile info,
+хештегами, кількістю лайків і `liked_by_current_user`, щоб frontend не
+підставляв `user_ID` та не тримав лайки тільки локально.
 
 ## Рекомендації постів
 
@@ -265,7 +284,6 @@ alembic revision --autogenerate -m "describe change"
 
 ## Наступні покращення
 
-- Додати `GET /api/v1/posts` для повної стрічки.
-- Додати backend endpoints для редагування optional profile info.
+- Додати пагінацію або cursor-based завантаження для `/api/v1/posts/feed`.
 - Додати автоматичні інтеграційні тести: register -> login -> me -> create post.
 - Перенести frontend на Vite і налаштувати dev proxy `/api -> http://127.0.0.1:8000`.

@@ -10,6 +10,7 @@ from voidtalk_api.core.exceptions import (
 )
 from voidtalk_api.models.user import User
 from voidtalk_api.schemas.post import (
+    FeedPostRead,
     PostCreate,
     PostLikeCountRead,
     PostLikeRead,
@@ -40,6 +41,18 @@ def list_recommended_posts(
     db: Session = Depends(get_db),
 ):
     return PostRecommendationService(db).list_recommendations(
+        current_user=current_user,
+        limit=limit,
+    )
+
+
+@router.get("/feed", response_model=list[FeedPostRead])
+def list_feed_posts(
+    limit: int | None = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return PostService(db).list_feed(
         current_user=current_user,
         limit=limit,
     )

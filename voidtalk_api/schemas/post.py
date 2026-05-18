@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from voidtalk_api.schemas.user import UserPublicProfileRead
+
 
 class PostCreate(BaseModel):
     post_body: str = Field(min_length=1)
@@ -41,3 +43,11 @@ class RecommendedPostRead(PostRead):
     likes_count: int
     hashtags: list[str]
     recommendation_score: float
+    author: UserPublicProfileRead
+
+
+class FeedPostRead(PostRead):
+    likes_count: int
+    hashtags: list[str]
+    liked_by_current_user: bool
+    author: UserPublicProfileRead

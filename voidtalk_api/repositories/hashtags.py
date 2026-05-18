@@ -36,3 +36,20 @@ class HashtagRepository:
             )
 
         self.db.commit()
+
+    def list_by_post_ids(self, post_ids: list[int]) -> dict[int, list[str]]:
+        if not post_ids:
+            return {}
+
+        rows = self.db.execute(
+            select(PostHashtag.post_id, Hashtag.name)
+            .join(Hashtag, Hashtag.id == PostHashtag.hashtag_id)
+            .where(PostHashtag.post_id.in_(post_ids))
+            .order_by(Hashtag.name.asc())
+        )
+
+        hashtags_by_post_id: dict[int, list[str]] = {}
+        for post_id, hashtag_name in rows:
+            hashtags_by_post_id.setdefault(post_id, []).append(hashtag_name)
+
+        return hashtags_by_post_id

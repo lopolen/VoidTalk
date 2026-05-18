@@ -67,29 +67,31 @@
         });
     }
 
-    async function getCurrentSession() {
-        const response = await apiFetch("/api/v1/users/me", {
-            method: "GET"
-        });
+async function getCurrentSession() {
+    const response = await apiFetch("/api/v1/users/me", {
+        method: "GET"
+    });
 
-        if (response.status === 401) {
-            localStorage.removeItem("voidTalkUser");
-            return null;
-        }
-
-        if (!response.ok) {
-            const errorMessage = await getApiErrorMessage(
-                response,
-                "Не вдалося перевірити поточну сесію."
-            );
-            throw new Error(errorMessage);
-        }
-
-        const user = await readJsonResponse(response);
-        localStorage.setItem("voidTalkUser", JSON.stringify(user));
-        return user;
+    if (response.status === 401) {
+        return null;
     }
 
+    if (!response.ok) {
+        const errorMessage = await getApiErrorMessage(
+            response,
+            "Не вдалося перевірити поточну сесію."
+        );
+        throw new Error(errorMessage);
+    }
+
+    const user = await readJsonResponse(response);
+
+    if (user) {
+        localStorage.setItem("voidTalkUser", JSON.stringify(user));
+    }
+
+    return user;
+}
     window.voidTalkApi = {
         buildApiUrl,
         getApiBaseUrl,

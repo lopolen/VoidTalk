@@ -3,49 +3,93 @@ const registerForm = document.getElementById("registerForm");
 
 const loginTab = document.getElementById("loginTab");
 const registerTab = document.getElementById("registerTab");
+const loginStatus = document.getElementById("loginStatus");
+const registerStatus = document.getElementById("registerStatus");
 
-checkCurrentSession();
-
-async function checkCurrentSession() {
-    try {
-        await voidTalkApi.getCurrentSession();
-    } catch (error) {
-        console.log("Не вдалося перевірити поточну сесію:", error);
-    }
-}
+/*
+    ВАЖНО:
+    Тут мы НЕ вызываем getCurrentSession() автоматически,
+    потому что из-за /users/me сайт мог сам себя разлогинивать.
+*/
 
 /* Перемикання форм входу та реєстрації */
 
 function showLogin() {
+    if (!loginForm || !registerForm || !loginTab || !registerTab) {
+        return;
+    }
+
     loginForm.classList.add("active-form");
     registerForm.classList.remove("active-form");
 
     loginTab.classList.add("active");
     registerTab.classList.remove("active");
+
+    clearFormStatus(loginStatus);
 }
 
 function showRegister() {
+    if (!loginForm || !registerForm || !loginTab || !registerTab) {
+        return;
+    }
+
     registerForm.classList.add("active-form");
     loginForm.classList.remove("active-form");
 
     registerTab.classList.add("active");
     loginTab.classList.remove("active");
+
+    clearFormStatus(registerStatus);
 }
 
-/* Навігація */
+/* Допоміжна функція для збереження користувача */
 
-const pageLinks = document.querySelectorAll("a[data-page]");
+function saveAuthUser(user, fallbackUser) {
+    const finalUser = user || fallbackUser;
 
-pageLinks.forEach(function(link) {
-    link.addEventListener("click", function(event) {
-        const page = link.getAttribute("data-page");
+    if (!finalUser) {
+        return;
+    }
 
-        if (page) {
-            event.preventDefault();
-            window.location.href = page;
+    localStorage.setItem("voidTalkUser", JSON.stringify(finalUser));
+}
+
+function setFormStatus(element, message, type = "info") {
+    if (!element) {
+        return;
+    }
+
+    element.textContent = message;
+    element.className = `form-status ${type}`;
+}
+
+function clearFormStatus(element) {
+    setFormStatus(element, "");
+}
+
+function setFormSubmitting(form, isSubmitting) {
+    if (!form) {
+        return;
+    }
+
+    const submitButton = form.querySelector('button[type="submit"]');
+    const inputs = form.querySelectorAll("input");
+
+    if (submitButton) {
+        if (!submitButton.dataset.defaultText) {
+            submitButton.dataset.defaultText = submitButton.textContent;
         }
+
+        submitButton.disabled = isSubmitting;
+        submitButton.textContent = isSubmitting
+            ? "Зачекайте..."
+            : submitButton.dataset.defaultText || submitButton.textContent;
+    }
+
+    inputs.forEach(function(input) {
+        input.disabled = isSubmitting;
     });
-});
+}
 
 /* Вхід користувача */
 
@@ -54,11 +98,14 @@ if (loginForm) {
         event.preventDefault();
 
         const formData = {
-            login: loginForm.email.value,
+            login: loginForm.email.value.trim(),
             password: loginForm.password.value
         };
 
         try {
+            setFormSubmitting(loginForm, true);
+            setFormStatus(loginStatus, "Перевіряємо дані входу...");
+
             const response = await apiFetch("/api/v1/users/login", {
                 method: "POST",
                 headers: {
@@ -69,23 +116,41 @@ if (loginForm) {
 
             if (!response.ok) {
                 const errorMessage = await voidTalkApi.getApiErrorMessage(response, "Помилка входу");
-                alert(errorMessage);
+                setFormStatus(loginStatus, errorMessage, "error");
                 return;
             }
 
-            const user = await voidTalkApi.readJsonResponse(response);
+            let user = await voidTalkApi.readJsonResponse(response);
 
-            localStorage.setItem("voidTalkUser", JSON.stringify(user));
+            /*
+                Якщо backend після login не повернув користувача,
+                frontend все одно зберігає базові дані,
+                щоб сайт не викидав назад на index.html.
+            */
+            if (!user) {
+                user = {
+                    username: formData.login.includes("@")
+                        ? formData.login.split("@")[0]
+                        : formData.login,
+                    email: formData.login
+                };
+            }
 
-            alert("Вхід успішний");
+            saveAuthUser(user);
+
+            setFormStatus(loginStatus, "Вхід успішний. Відкриваємо профіль...", "success");
             window.location.href = "profile.html";
 
         } catch (error) {
             console.log("Помилка входу:", error);
-            alert(
+            setFormStatus(
+                loginStatus,
                 "Не вдалося підключитися до сервера. " +
-                `Перевірте, чи запущений backend на ${voidTalkApi.getApiBaseUrl()}.`
+                `Перевірте, чи запущений backend на ${voidTalkApi.getApiBaseUrl()}.`,
+                "error"
             );
+        } finally {
+            setFormSubmitting(loginForm, false);
         }
     });
 }
@@ -97,12 +162,15 @@ if (registerForm) {
         event.preventDefault();
 
         const formData = {
-            username: registerForm.username.value,
-            email: registerForm.email.value,
+            username: registerForm.username.value.trim(),
+            email: registerForm.email.value.trim(),
             password: registerForm.password.value
         };
 
         try {
+            setFormSubmitting(registerForm, true);
+            setFormStatus(registerStatus, "Створюємо акаунт...");
+
             const response = await apiFetch("/api/v1/users/register", {
                 method: "POST",
                 headers: {
@@ -113,11 +181,12 @@ if (registerForm) {
 
             if (!response.ok) {
                 const errorMessage = await voidTalkApi.getApiErrorMessage(response, "Помилка реєстрації");
-                alert(errorMessage);
+                setFormStatus(registerStatus, errorMessage, "error");
                 return;
             }
 
-            const user = await voidTalkApi.readJsonResponse(response);
+            const registeredUser = await voidTalkApi.readJsonResponse(response);
+
             const loginResponse = await apiFetch("/api/v1/users/login", {
                 method: "POST",
                 headers: {
@@ -134,23 +203,42 @@ if (registerForm) {
                     loginResponse,
                     "Реєстрація успішна, але автоматичний вхід не вдався."
                 );
-                alert(errorMessage);
+
                 showLogin();
+                setFormStatus(loginStatus, errorMessage, "error");
                 return;
             }
 
-            localStorage.setItem("voidTalkUser", JSON.stringify(user));
+            let loginUser = await voidTalkApi.readJsonResponse(loginResponse);
+
+            /*
+                Якщо backend після login нічого не повернув,
+                беремо користувача з register.
+                Якщо і там пусто — створюємо frontend-об'єкт самі.
+            */
+            if (!loginUser) {
+                loginUser = registeredUser || {
+                    username: formData.username,
+                    email: formData.email
+                };
+            }
+
+            saveAuthUser(loginUser);
             localStorage.setItem("voidTalkProfileNeedsSetup", "true");
 
-            alert("Реєстрація успішна. Тепер налаштуйте профіль.");
+            setFormStatus(registerStatus, "Реєстрація успішна. Відкриваємо профіль...", "success");
             window.location.href = "profile.html";
 
         } catch (error) {
             console.log("Помилка реєстрації:", error);
-            alert(
+            setFormStatus(
+                registerStatus,
                 "Не вдалося підключитися до сервера. " +
-                `Перевірте, чи запущений backend на ${voidTalkApi.getApiBaseUrl()}.`
+                `Перевірте, чи запущений backend на ${voidTalkApi.getApiBaseUrl()}.`,
+                "error"
             );
+        } finally {
+            setFormSubmitting(registerForm, false);
         }
     });
 }
@@ -186,7 +274,6 @@ if (logo && logoSound) {
                 })
                 .catch(function(error) {
                     console.log("Помилка звуку:", error);
-                    alert("Звук не запустився. Перевір файл audio/click-sound.mp3");
                 });
         }
     });

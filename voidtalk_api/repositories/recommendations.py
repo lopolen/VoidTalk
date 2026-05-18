@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from voidtalk_api.models.post import Hashtag, Post, PostHashtag, PostUserLike
+from voidtalk_api.models.user import User
 
 
 @dataclass(frozen=True)
@@ -51,6 +52,7 @@ class PostRecommendationRepository:
 
         stmt = (
             select(Post, func.count(PostUserLike.user_id).label("likes_count"))
+            .options(selectinload(Post.user).selectinload(User.optional_info))
             .outerjoin(PostUserLike, PostUserLike.post_id == Post.id)
             .where(Post.id.not_in(liked_post_ids))
             .group_by(Post.id)

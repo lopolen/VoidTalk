@@ -1,7 +1,8 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from voidtalk_api.models.post import Post
+from voidtalk_api.models.user import User
 
 
 class PostRepository:
@@ -25,6 +26,16 @@ class PostRepository:
                 select(Post)
                 .where(Post.user_id == user_id)
                 .order_by(Post.created_at.desc(), Post.id.desc())
+            )
+        )
+
+    def list_recent(self, limit: int) -> list[Post]:
+        return list(
+            self.db.scalars(
+                select(Post)
+                .options(selectinload(Post.user).selectinload(User.optional_info))
+                .order_by(Post.created_at.desc(), Post.id.desc())
+                .limit(limit)
             )
         )
 

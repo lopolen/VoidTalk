@@ -12,6 +12,7 @@ from voidtalk_api.repositories.recommendations import (
     PostRecommendationCandidate,
     PostRecommendationRepository,
 )
+from voidtalk_api.services.posts import PublicUserProfile
 
 
 @dataclass(frozen=True)
@@ -23,6 +24,7 @@ class RecommendedPost:
     likes_count: int
     hashtags: list[str]
     recommendation_score: float
+    author: PublicUserProfile
 
 
 class PostRecommendationScorer:
@@ -147,4 +149,10 @@ class PostRecommendationService:
             likes_count=candidate.likes_count,
             hashtags=candidate.hashtags,
             recommendation_score=round(score, 6),
+            author=PublicUserProfile(
+                id=candidate.post.user.id,
+                username=candidate.post.user.username,
+                created_at=candidate.post.user.created_at,
+                optional_info=candidate.post.user.optional_info,
+            ),
         )
