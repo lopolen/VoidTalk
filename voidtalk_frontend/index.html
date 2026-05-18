@@ -19,6 +19,7 @@
         <nav class="nav">
             <a href="index.html" class="active-page">Головна</a>
             <a href="messages.html">Повідомлення</a>
+            <a href="my-posts.html">Мої пости</a>
             <a href="about.html">Про сайт</a>
             <a href="profile.html">Профіль</a>
         </nav>  
@@ -42,8 +43,8 @@
                 </p>
 
                 <div class="hero-buttons">
-                    <a href="#" class="primary-btn" onclick="showRegister()">Зареєструватися</a>
-                    <a href="#" class="secondary-btn" onclick="showLogin()">Увійти</a>
+                    <button class="primary-btn" type="button" onclick="showRegister()">Зареєструватися</button>
+                    <button class="secondary-btn" type="button" onclick="showLogin()">Увійти</button>
                 </div>
             </div>
 
@@ -89,10 +90,11 @@
                         >
 
                         <button type="submit" class="form-btn">Увійти</button>
+                        <p class="form-status" id="loginStatus" aria-live="polite"></p>
 
                         <p class="small-text">
                             Немає акаунта?
-                            <a href="#" onclick="showRegister()">Зареєструватися</a>
+                            <button type="button" class="text-link" onclick="showRegister()">Зареєструватися</button>
                         </p>
                     </form>
 
@@ -138,10 +140,11 @@
                         >
 
                         <button type="submit" class="form-btn">Зареєструватися</button>
+                        <p class="form-status" id="registerStatus" aria-live="polite"></p>
 
                         <p class="small-text">
                             Вже маєте акаунт?
-                            <a href="#" onclick="showLogin()">Увійти</a>
+                            <button type="button" class="text-link" onclick="showLogin()">Увійти</button>
                         </p>
                     </form>
 
@@ -154,20 +157,20 @@
             <h2>Популярні теми</h2>
 
             <div class="hashtags">
-                <a href="#" data-tag="games" data-page="tag-games.html">#games</a>
-                <a href="#" data-tag="study" data-page="tag-study.html">#study</a>
-                <a href="#" data-tag="news" data-page="tag-news.html">#news</a>
-                <a href="#" data-tag="memes" data-page="tag-memes.html">#memes</a>
-                <a href="#" data-tag="programming" data-page="tag-programming.html">#programming</a>
-                <a href="#" data-tag="questions" data-page="tag-questions.html">#questions</a>
-                <a href="#" data-tag="design" data-page="tag-design.html">#design</a>
-                <a href="#" data-tag="random" data-page="tag-random.html">#random</a>
-                <a href="#" data-tag="frontend" data-page="tag-frontend.html">#frontend</a>
-                <a href="#" data-tag="backend" data-page="tag-backend.html">#backend</a>
+                <a href="messages.html?tag=games" data-tag="games">#games</a>
+                <a href="messages.html?tag=study" data-tag="study">#study</a>
+                <a href="messages.html?tag=news" data-tag="news">#news</a>
+                <a href="messages.html?tag=memes" data-tag="memes">#memes</a>
+                <a href="messages.html?tag=programming" data-tag="programming">#programming</a>
+                <a href="messages.html?tag=questions" data-tag="questions">#questions</a>
+                <a href="messages.html?tag=design" data-tag="design">#design</a>
+                <a href="messages.html?tag=random" data-tag="random">#random</a>
+                <a href="messages.html?tag=frontend" data-tag="frontend">#frontend</a>
+                <a href="messages.html?tag=backend" data-tag="backend">#backend</a>
             </div>
 
             <div class="posts">
-                <a href="#" class="post-card" data-page="post-1.html">
+                <a href="messages.html?tag=frontend" class="post-card">
                     <div class="post-top">
                         <div class="avatar">M</div>
                         <div>
@@ -181,13 +184,13 @@
                     </p>
 
                     <div class="post-bottom">
-                        <span>♡ 24</span>
-                        <span>💬 8</span>
+                        <span>Приклад</span>
+                        <span>Обговорення</span>
                         <span>#frontend</span>
                     </div>
                 </a>
 
-                <a href="#" class="post-card" data-page="post-2.html">
+                <a href="messages.html?tag=design" class="post-card">
                     <div class="post-top">
                         <div class="avatar">A</div>
                         <div>
@@ -201,8 +204,8 @@
                     </p>
 
                     <div class="post-bottom">
-                        <span>♡ 41</span>
-                        <span>💬 13</span>
+                        <span>Приклад</span>
+                        <span>Обговорення</span>
                         <span>#design</span>
                     </div>
                 </a>
@@ -218,6 +221,7 @@
         </div>
     </footer>
 
+    <audio id="logoSound" src="audio/click-sound.mp3" preload="auto"></audio>
     <script src="config.js"></script>
     <script src="api.js"></script>
     <script src="auth-guard.js"></script>

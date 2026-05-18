@@ -7,7 +7,7 @@
 */
 
 (function() {
-    const protectedPages = ["messages.html", "profile.html"];
+    const protectedPages = ["messages.html", "my-posts.html", "profile.html"];
 
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", initAuthGuard);

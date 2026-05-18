@@ -3,6 +3,8 @@ const registerForm = document.getElementById("registerForm");
 
 const loginTab = document.getElementById("loginTab");
 const registerTab = document.getElementById("registerTab");
+const loginStatus = document.getElementById("loginStatus");
+const registerStatus = document.getElementById("registerStatus");
 
 /*
     ВАЖНО:
@@ -22,6 +24,8 @@ function showLogin() {
 
     loginTab.classList.add("active");
     registerTab.classList.remove("active");
+
+    clearFormStatus(loginStatus);
 }
 
 function showRegister() {
@@ -34,22 +38,9 @@ function showRegister() {
 
     registerTab.classList.add("active");
     loginTab.classList.remove("active");
+
+    clearFormStatus(registerStatus);
 }
-
-/* Навігація */
-
-const pageLinks = document.querySelectorAll("a[data-page]");
-
-pageLinks.forEach(function(link) {
-    link.addEventListener("click", function(event) {
-        const page = link.getAttribute("data-page");
-
-        if (page) {
-            event.preventDefault();
-            window.location.href = page;
-        }
-    });
-});
 
 /* Допоміжна функція для збереження користувача */
 
@@ -61,6 +52,43 @@ function saveAuthUser(user, fallbackUser) {
     }
 
     localStorage.setItem("voidTalkUser", JSON.stringify(finalUser));
+}
+
+function setFormStatus(element, message, type = "info") {
+    if (!element) {
+        return;
+    }
+
+    element.textContent = message;
+    element.className = `form-status ${type}`;
+}
+
+function clearFormStatus(element) {
+    setFormStatus(element, "");
+}
+
+function setFormSubmitting(form, isSubmitting) {
+    if (!form) {
+        return;
+    }
+
+    const submitButton = form.querySelector('button[type="submit"]');
+    const inputs = form.querySelectorAll("input");
+
+    if (submitButton) {
+        if (!submitButton.dataset.defaultText) {
+            submitButton.dataset.defaultText = submitButton.textContent;
+        }
+
+        submitButton.disabled = isSubmitting;
+        submitButton.textContent = isSubmitting
+            ? "Зачекайте..."
+            : submitButton.dataset.defaultText || submitButton.textContent;
+    }
+
+    inputs.forEach(function(input) {
+        input.disabled = isSubmitting;
+    });
 }
 
 /* Вхід користувача */
@@ -75,6 +103,9 @@ if (loginForm) {
         };
 
         try {
+            setFormSubmitting(loginForm, true);
+            setFormStatus(loginStatus, "Перевіряємо дані входу...");
+
             const response = await apiFetch("/api/v1/users/login", {
                 method: "POST",
                 headers: {
@@ -85,7 +116,7 @@ if (loginForm) {
 
             if (!response.ok) {
                 const errorMessage = await voidTalkApi.getApiErrorMessage(response, "Помилка входу");
-                alert(errorMessage);
+                setFormStatus(loginStatus, errorMessage, "error");
                 return;
             }
 
@@ -107,15 +138,19 @@ if (loginForm) {
 
             saveAuthUser(user);
 
-            alert("Вхід успішний");
+            setFormStatus(loginStatus, "Вхід успішний. Відкриваємо профіль...", "success");
             window.location.href = "profile.html";
 
         } catch (error) {
             console.log("Помилка входу:", error);
-            alert(
+            setFormStatus(
+                loginStatus,
                 "Не вдалося підключитися до сервера. " +
-                `Перевірте, чи запущений backend на ${voidTalkApi.getApiBaseUrl()}.`
+                `Перевірте, чи запущений backend на ${voidTalkApi.getApiBaseUrl()}.`,
+                "error"
             );
+        } finally {
+            setFormSubmitting(loginForm, false);
         }
     });
 }
@@ -133,6 +168,9 @@ if (registerForm) {
         };
 
         try {
+            setFormSubmitting(registerForm, true);
+            setFormStatus(registerStatus, "Створюємо акаунт...");
+
             const response = await apiFetch("/api/v1/users/register", {
                 method: "POST",
                 headers: {
@@ -143,7 +181,7 @@ if (registerForm) {
 
             if (!response.ok) {
                 const errorMessage = await voidTalkApi.getApiErrorMessage(response, "Помилка реєстрації");
-                alert(errorMessage);
+                setFormStatus(registerStatus, errorMessage, "error");
                 return;
             }
 
@@ -166,8 +204,8 @@ if (registerForm) {
                     "Реєстрація успішна, але автоматичний вхід не вдався."
                 );
 
-                alert(errorMessage);
                 showLogin();
+                setFormStatus(loginStatus, errorMessage, "error");
                 return;
             }
 
@@ -188,15 +226,19 @@ if (registerForm) {
             saveAuthUser(loginUser);
             localStorage.setItem("voidTalkProfileNeedsSetup", "true");
 
-            alert("Реєстрація успішна. Тепер налаштуйте профіль.");
+            setFormStatus(registerStatus, "Реєстрація успішна. Відкриваємо профіль...", "success");
             window.location.href = "profile.html";
 
         } catch (error) {
             console.log("Помилка реєстрації:", error);
-            alert(
+            setFormStatus(
+                registerStatus,
                 "Не вдалося підключитися до сервера. " +
-                `Перевірте, чи запущений backend на ${voidTalkApi.getApiBaseUrl()}.`
+                `Перевірте, чи запущений backend на ${voidTalkApi.getApiBaseUrl()}.`,
+                "error"
             );
+        } finally {
+            setFormSubmitting(registerForm, false);
         }
     });
 }
@@ -232,7 +274,6 @@ if (logo && logoSound) {
                 })
                 .catch(function(error) {
                     console.log("Помилка звуку:", error);
-                    alert("Звук не запустився. Перевір файл audio/click-sound.mp3");
                 });
         }
     });

@@ -19,8 +19,9 @@
         <a href="index.html" class="logo" id="logo">VoidTalk</a>
 
         <nav class="nav">
-            <a href="#">Головна</a>
+            <a href="index.html">Головна</a>
             <a href="messages.html">Повідомлення</a>
+            <a href="my-posts.html">Мої пости</a>
             <a href="about.html">Про сайт</a>
             <a href="profile.html" class="active-page">Профіль</a>
         </nav>
@@ -45,17 +46,17 @@
 
                 <div class="profile-stats">
                     <div>
-                        <strong>12</strong>
+                        <strong id="profilePostsCount">0</strong>
                         <span>Постів</span>
                     </div>
 
                     <div>
-                        <strong>48</strong>
-                        <span>Коментарів</span>
+                        <strong id="profileLikesCount">0</strong>
+                        <span>Лайків</span>
                     </div>
 
                     <div>
-                        <strong>7</strong>
+                        <strong id="profileTopicsCount">0</strong>
                         <span>Тем</span>
                     </div>
                 </div>
@@ -73,8 +74,10 @@
                         type="text"
                         placeholder="Наприклад: Mykhailo"
                         maxlength="24"
+                        aria-describedby="accountNameHint"
                         required
                     >
+                    <p class="field-hint" id="accountNameHint">Нікнейм береться з акаунта та не редагується тут.</p>
 
                     <label for="accountDescription">Опис акаунту</label>
                     <textarea
@@ -171,6 +174,8 @@
                         <button type="submit" class="primary-btn">Зберегти профіль</button>
                         <button type="button" class="secondary-btn" id="resetProfile">Скинути</button>
                     </div>
+
+                    <p class="form-status" id="profileStatus" aria-live="polite"></p>
 
                 </form>
             </div>

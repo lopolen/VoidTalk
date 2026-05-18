@@ -290,8 +290,12 @@ body {
     font-weight: bold;
     transition: 0.3s;
     text-decoration: none;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     text-align: center;
+    font-family: inherit;
+    font-size: 15px;
 }
 
 .primary-btn {
@@ -312,6 +316,15 @@ body {
 .secondary-btn:hover,
 .form-btn:hover {
     transform: translateY(-4px);
+}
+
+.primary-btn:disabled,
+.secondary-btn:disabled,
+.form-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.68;
+    transform: none;
+    box-shadow: none;
 }
 
 .primary-btn:hover {
@@ -428,15 +441,44 @@ body {
     font-size: 14px;
 }
 
-.small-text a {
+.small-text a,
+.text-link {
     color: white;
     cursor: pointer;
     font-weight: bold;
     text-decoration: none;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    padding: 0;
 }
 
-.small-text a:hover {
+.small-text a:hover,
+.text-link:hover {
     text-decoration: underline;
+}
+
+.form-status {
+    min-height: 22px;
+    margin-top: 12px;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.form-status.success {
+    color: #86efac;
+}
+
+.form-status.error {
+    color: #fca5a5;
+}
+
+.field-hint {
+    margin: -10px 0 16px;
+    color: rgba(196, 181, 253, 0.76);
+    font-size: 13px;
+    line-height: 1.45;
 }
 
 /* Preview */
@@ -1217,6 +1259,46 @@ body {
     font-size: 34px;
 }
 
+.toolbar-description {
+    max-width: 420px;
+    margin-top: 8px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    font-size: 14px;
+}
+
+.feed-tabs {
+    display: flex;
+    padding: 6px;
+    border-radius: 16px;
+    background: rgba(5, 2, 12, 0.82);
+    border: 1px solid rgba(192, 132, 252, 0.16);
+}
+
+.feed-tab {
+    min-width: 132px;
+    padding: 12px 16px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    transition: 0.25s ease;
+}
+
+.feed-tab:hover {
+    color: white;
+}
+
+.feed-tab.active-feed-tab {
+    background: linear-gradient(135deg, #5b21b6, #9333ea);
+    color: white;
+    box-shadow: 0 0 16px rgba(147, 51, 234, 0.35);
+}
+
 .message-search-box {
     flex: 1;
     min-width: 260px;
@@ -1293,6 +1375,7 @@ body {
 
 .message-bottom {
     align-items: center;
+    flex-wrap: wrap;
 }
 
 .like-btn {
@@ -1313,6 +1396,13 @@ body {
 .like-btn.liked {
     color: #f472b6;
     text-shadow: 0 0 12px rgba(244, 114, 182, 0.7);
+}
+
+.recommendation-score {
+    margin-left: auto;
+    color: #86efac;
+    font-size: 12px;
+    font-weight: 700;
 }
 
 .empty-messages {
@@ -1336,6 +1426,15 @@ body {
     .messages-toolbar {
         align-items: flex-start;
         flex-direction: column;
+    }
+
+    .feed-tabs {
+        width: 100%;
+    }
+
+    .feed-tab {
+        flex: 1;
+        min-width: 0;
     }
 
     .message-form-bottom {
@@ -1792,4 +1891,76 @@ body {
 .profile-modal-stats span {
     color: var(--text-muted);
     font-size: 12px;
+}
+
+/* My posts page */
+
+.my-posts-main {
+    padding-top: 10px;
+}
+
+.my-posts-hero {
+    margin: 26px auto 28px;
+    padding: 30px;
+    border-radius: 28px;
+    background: rgba(17, 8, 31, 0.84);
+    border: 1px solid rgba(192, 132, 252, 0.18);
+    box-shadow: 0 0 32px rgba(88, 28, 135, 0.24);
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 22px;
+    animation: fadeUp 1s ease both;
+}
+
+.my-posts-hero h1 {
+    font-size: 42px;
+    margin-bottom: 10px;
+}
+
+.my-posts-hero p {
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+
+.my-posts-list {
+    grid-template-columns: 1fr;
+    margin-bottom: 70px;
+}
+
+.my-post-card {
+    cursor: default;
+}
+
+.my-post-bottom {
+    flex-wrap: wrap;
+}
+
+.my-post-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 18px;
+}
+
+.delete-post-btn {
+    padding: 12px 18px;
+    border-color: rgba(248, 113, 113, 0.35);
+    color: #fecaca;
+}
+
+.delete-post-btn:hover {
+    background: rgba(127, 29, 29, 0.24);
+    box-shadow: 0 0 18px rgba(248, 113, 113, 0.16);
+}
+
+@media (max-width: 760px) {
+    .my-posts-hero {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .my-posts-hero .primary-btn {
+        width: 100%;
+    }
 }

@@ -21,8 +21,9 @@
             <a href="index.html" class="logo" id="logo">VoidTalk</a>
 
             <nav class="nav">
-                <a href="#">Головна</a>
-                <a href="#" class="active-page">Повідомлення</a>
+                <a href="index.html">Головна</a>
+                <a href="messages.html" class="active-page">Повідомлення</a>
+                <a href="my-posts.html">Мої пости</a>
                 <a href="about.html">Про сайт</a>
                 <a href="profile.html">Профіль</a>
             </nav>
@@ -40,17 +41,17 @@
 
             <div class="mini-profile-stats">
                 <div>
-                    <strong>12</strong>
+                    <strong id="miniPostsCount">0</strong>
                     <span>Постів</span>
                 </div>
 
                 <div>
-                    <strong>28</strong>
-                    <span>Ком.</span>
+                    <strong id="miniLikesCount">0</strong>
+                    <span>Лайків</span>
                 </div>
 
                 <div>
-                    <strong>3</strong>
+                    <strong id="miniTopicsCount">0</strong>
                     <span>Тем</span>
                 </div>
             </div>
@@ -66,21 +67,50 @@
                 <textarea
                     id="messageInput"
                     maxlength="500"
-                    placeholder="Напишіть своє повідомлення..."
+                    placeholder="Поділіться думкою, питанням або темою з #хештегом"
                     required
                 ></textarea>
 
                 <div class="message-form-bottom">
                     <span id="messageCounter">0 / 500</span>
-                    <button id="publishMessageButton" type="button" class="primary-btn">Опублікувати</button>
+                    <button id="publishMessageButton" type="submit" class="primary-btn">Опублікувати</button>
                 </div>
+
+                <p class="form-status" id="messageStatus" aria-live="polite"></p>
             </form>
         </section>
 
         <section class="messages-toolbar">
             <div>
                 <div class="badge">Стрічка повідомлень</div>
-                <h2>Усі повідомлення</h2>
+                <h2 id="messagesTitle">Усі повідомлення</h2>
+                <p class="toolbar-description" id="messagesDescription">
+                    Останні пости всіх користувачів.
+                </p>
+            </div>
+
+            <div class="feed-tabs" role="tablist" aria-label="Режим стрічки">
+                <button
+                    class="feed-tab active-feed-tab"
+                    id="feedTab"
+                    type="button"
+                    data-mode="feed"
+                    role="tab"
+                    aria-selected="true"
+                >
+                    Фід
+                </button>
+
+                <button
+                    class="feed-tab"
+                    id="recommendationsTab"
+                    type="button"
+                    data-mode="recommendations"
+                    role="tab"
+                    aria-selected="false"
+                >
+                    Рекомендації
+                </button>
             </div>
 
             <div class="message-search-box">
@@ -133,17 +163,17 @@
 
         <div class="profile-modal-stats">
             <div>
-                <strong>12</strong>
+                <strong id="profileModalPostsCount">0</strong>
                 <span>Постів</span>
             </div>
 
             <div>
-                <strong>28</strong>
-                <span>Коментарів</span>
+                <strong id="profileModalLikesCount">0</strong>
+                <span>Лайків</span>
             </div>
 
             <div>
-                <strong>3</strong>
+                <strong id="profileModalTopicsCount">0</strong>
                 <span>Тем</span>
             </div>
         </div>

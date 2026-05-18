@@ -17,8 +17,12 @@ const messageInput = document.getElementById("messageInput");
 const messageCounter = document.getElementById("messageCounter");
 const messagesList = document.getElementById("messagesList");
 const publishMessageButton = document.getElementById("publishMessageButton");
+const messageStatus = document.getElementById("messageStatus");
 const filterButtons = document.querySelectorAll(".filter-btn");
+const feedModeButtons = document.querySelectorAll(".feed-tab");
 const messageSearch = document.getElementById("messageSearch");
+const messagesTitle = document.getElementById("messagesTitle");
+const messagesDescription = document.getElementById("messagesDescription");
 
 const logo = document.getElementById("logo");
 const logoSound = document.getElementById("logoSound");
@@ -26,6 +30,9 @@ const logoSound = document.getElementById("logoSound");
 const miniProfileName = document.getElementById("miniProfileName");
 const miniProfileAvatar = document.getElementById("miniProfileAvatar");
 const miniProfileAvatarImg = document.getElementById("miniProfileAvatarImg");
+const miniPostsCount = document.getElementById("miniPostsCount");
+const miniLikesCount = document.getElementById("miniLikesCount");
+const miniTopicsCount = document.getElementById("miniTopicsCount");
 const logoutButton = document.getElementById("logoutButton");
 
 const profileModal = document.getElementById("profileModal");
@@ -35,11 +42,19 @@ const profileModalAvatar = document.getElementById("profileModalAvatar");
 const profileModalAvatarImg = document.getElementById("profileModalAvatarImg");
 const profileModalName = document.getElementById("profileModalName");
 const profileModalDescription = document.getElementById("profileModalDescription");
+const profileModalPostsCount = document.getElementById("profileModalPostsCount");
+const profileModalLikesCount = document.getElementById("profileModalLikesCount");
+const profileModalTopicsCount = document.getElementById("profileModalTopicsCount");
 
 let activeFilter = "all";
+let activeMode = "feed";
 let searchQuery = "";
 let messages = [];
+let statsMessages = [];
 const profileCache = new Map();
+let currentMiniProfileName = "";
+
+applyInitialUrlFilters();
 
 /* Avatar mapping */
 
@@ -92,6 +107,138 @@ function cacheProfile(profile) {
     profileCache.set(profile.accountName.toLowerCase(), profile);
 }
 
+function applyInitialUrlFilters() {
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get("mode");
+    const tag = params.get("tag");
+    const query = params.get("q");
+
+    if (mode === "recommendations") {
+        activeMode = "recommendations";
+    }
+
+    if (tag) {
+        activeFilter = tag.toLowerCase().replace("#", "");
+    }
+
+    if (query) {
+        searchQuery = query;
+    }
+
+    if (messageSearch && searchQuery) {
+        messageSearch.value = searchQuery;
+    }
+
+    filterButtons.forEach(function(button) {
+        const buttonFilter = button.getAttribute("data-filter");
+        button.classList.toggle("active-filter", buttonFilter === activeFilter);
+    });
+
+    if (![...filterButtons].some(function(button) {
+        return button.getAttribute("data-filter") === activeFilter;
+    })) {
+        const allButton = document.querySelector('.filter-btn[data-filter="all"]');
+
+        if (allButton) {
+            allButton.classList.remove("active-filter");
+        }
+    }
+
+    renderModeTabs();
+}
+
+function renderModeTabs() {
+    feedModeButtons.forEach(function(button) {
+        const buttonMode = button.getAttribute("data-mode");
+        const isActive = buttonMode === activeMode;
+
+        button.classList.toggle("active-feed-tab", isActive);
+        button.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+
+    if (messagesTitle) {
+        messagesTitle.textContent = activeMode === "recommendations"
+            ? "Рекомендації для вас"
+            : "Усі повідомлення";
+    }
+
+    if (messagesDescription) {
+        messagesDescription.textContent = activeMode === "recommendations"
+            ? "Пости підібрані за хештегами, які ви лайкали або використовували."
+            : "Останні пости всіх користувачів.";
+    }
+}
+
+function setMessageStatus(message, type = "info") {
+    if (!messageStatus) {
+        return;
+    }
+
+    messageStatus.textContent = message;
+    messageStatus.className = `form-status ${type}`;
+}
+
+function setPublishState(isSubmitting) {
+    if (!publishMessageButton) {
+        return;
+    }
+
+    if (!publishMessageButton.dataset.defaultText) {
+        publishMessageButton.dataset.defaultText = publishMessageButton.textContent;
+    }
+
+    publishMessageButton.disabled = isSubmitting;
+    publishMessageButton.textContent = isSubmitting
+        ? "Публікуємо..."
+        : publishMessageButton.dataset.defaultText;
+}
+
+function getStatsForUsername(username) {
+    const normalizedUsername = String(username || "").toLowerCase();
+    const sourceMessages = statsMessages.length > 0 ? statsMessages : messages;
+    const userMessages = sourceMessages.filter(function(message) {
+        return message.username.toLowerCase() === normalizedUsername;
+    });
+    const topics = new Set(userMessages.map(function(message) {
+        return message.tag;
+    }).filter(Boolean));
+
+    return {
+        posts: userMessages.length,
+        likes: userMessages.reduce(function(total, message) {
+            return total + Number(message.likes || 0);
+        }, 0),
+        topics: topics.size
+    };
+}
+
+function renderStats(stats, postsElement, likesElement, topicsElement) {
+    if (postsElement) {
+        postsElement.textContent = String(stats.posts);
+    }
+
+    if (likesElement) {
+        likesElement.textContent = String(stats.likes);
+    }
+
+    if (topicsElement) {
+        topicsElement.textContent = String(stats.topics);
+    }
+}
+
+function renderMiniProfileStats() {
+    if (!currentMiniProfileName) {
+        return;
+    }
+
+    renderStats(
+        getStatsForUsername(currentMiniProfileName),
+        miniPostsCount,
+        miniLikesCount,
+        miniTopicsCount
+    );
+}
+
 /* Fallback messages */
 
 const testMessages = [
@@ -111,12 +258,44 @@ const testMessages = [
 
 /* Backend posts */
 
+function normalizeBackendPost(post, options = {}) {
+    const authorProfile = normalizePublicProfile(post.author);
+    const username = authorProfile.accountName;
+    const avatarText = username.charAt(0).toUpperCase();
+
+    cacheProfile(authorProfile);
+
+    return {
+        id: post.id,
+        userId: post.user_id,
+        username: username,
+        avatar: avatarText,
+        profile: authorProfile,
+        time: formatDate(post.created_at),
+        text: post.post_body || "",
+        likes: post.likes_count || 0,
+        tag: Array.isArray(post.hashtags) && post.hashtags.length > 0
+            ? String(post.hashtags[0]).replace("#", "")
+            : detectTag(post.post_body || ""),
+        liked: Boolean(post.liked_by_current_user),
+        recommendationScore: options.recommendationScore || null
+    };
+}
+
 async function loadMessagesFromBackend() {
+    return activeMode === "recommendations"
+        ? loadRecommendationsFromBackend()
+        : loadFeedFromBackend();
+}
+
+async function loadFeedFromBackend() {
     try {
         if (typeof apiFetch !== "function" || !window.voidTalkApi) {
             console.log("apiFetch недоступний.");
             messages = [...testMessages];
+            statsMessages = [...messages];
             renderMessages();
+            renderMiniProfileStats();
             return;
         }
 
@@ -135,6 +314,7 @@ async function loadMessagesFromBackend() {
             console.log(errorMessage);
             messages = [];
             renderMessages();
+            renderMiniProfileStats();
             return;
         }
 
@@ -145,39 +325,72 @@ async function loadMessagesFromBackend() {
         if (!Array.isArray(backendPosts)) {
             messages = [];
             renderMessages();
+            renderMiniProfileStats();
             return;
         }
 
         messages = backendPosts.map(function(post) {
-            const authorProfile = normalizePublicProfile(post.author);
-            const username = authorProfile.accountName;
-            const avatarText = username.charAt(0).toUpperCase();
-
-            cacheProfile(authorProfile);
-
-            return {
-                id: post.id,
-                userId: post.user_id,
-                username: username,
-                avatar: avatarText,
-                profile: authorProfile,
-                time: formatDate(post.created_at),
-                text: post.post_body || "",
-                likes: post.likes_count || 0,
-                comments: 0,
-                tag: Array.isArray(post.hashtags) && post.hashtags.length > 0
-                    ? String(post.hashtags[0]).replace("#", "")
-                    : detectTag(post.post_body || ""),
-                liked: Boolean(post.liked_by_current_user)
-            };
+            return normalizeBackendPost(post);
         });
+        statsMessages = [...messages];
 
         renderMessages();
+        renderMiniProfileStats();
 
     } catch (error) {
         console.log("Не вдалося завантажити пости з backend:", error);
         messages = [];
         renderMessages();
+        renderMiniProfileStats();
+    }
+}
+
+async function loadRecommendationsFromBackend() {
+    try {
+        if (typeof apiFetch !== "function" || !window.voidTalkApi) {
+            messages = [];
+            renderMessages();
+            return;
+        }
+
+        const response = await apiFetch("/api/v1/posts/recommendations?limit=30", {
+            method: "GET"
+        });
+
+        if (!response.ok) {
+            const errorMessage = await voidTalkApi.getApiErrorMessage(
+                response,
+                "Не вдалося завантажити рекомендації."
+            );
+
+            console.log(errorMessage);
+            messages = [];
+            renderMessages();
+            setMessageStatus(errorMessage, "error");
+            return;
+        }
+
+        const recommendedPosts = await voidTalkApi.readJsonResponse(response);
+
+        if (!Array.isArray(recommendedPosts)) {
+            messages = [];
+            renderMessages();
+            return;
+        }
+
+        messages = recommendedPosts.map(function(post) {
+            return normalizeBackendPost(post, {
+                recommendationScore: post.recommendation_score
+            });
+        });
+
+        renderMessages();
+        renderMiniProfileStats();
+    } catch (error) {
+        console.log("Не вдалося завантажити рекомендації з backend:", error);
+        messages = [];
+        renderMessages();
+        setMessageStatus("Не вдалося завантажити рекомендації.", "error");
     }
 }
 
@@ -205,10 +418,18 @@ function renderMessages() {
     });
 
     if (filteredMessages.length === 0) {
+        const hasActiveSearch = Boolean(normalizedSearch || activeFilter !== "all");
+        const emptyTitle = activeMode === "recommendations" && !hasActiveSearch
+            ? "Рекомендацій поки немає"
+            : hasActiveSearch ? "Нічого не знайдено" : "Повідомлень поки немає";
+        const emptyText = activeMode === "recommendations" && !hasActiveSearch
+            ? "Лайкніть кілька постів або створіть пости з хештегами, щоб система зрозуміла ваші інтереси."
+            : hasActiveSearch ? "Спробуйте інший пошук або покажіть усі повідомлення." : "Створіть перше повідомлення.";
+
         messagesList.innerHTML = `
             <div class="empty-messages">
-                <h3>Повідомлень поки немає</h3>
-                <p>Створіть перше повідомлення.</p>
+                <h3>${emptyTitle}</h3>
+                <p>${emptyText}</p>
             </div>
         `;
         return;
@@ -217,6 +438,9 @@ function renderMessages() {
     filteredMessages.forEach(function(message) {
         const messageCard = document.createElement("article");
         const isLiked = Boolean(message.liked);
+        const recommendationBadge = activeMode === "recommendations"
+            ? `<span class="recommendation-score">score ${escapeHtml(formatRecommendationScore(message.recommendationScore))}</span>`
+            : "";
 
         messageCard.className = "post-card message-card";
 
@@ -257,8 +481,8 @@ function renderMessages() {
                     ♥ ${message.likes}
                 </button>
 
-                <span>💬 ${message.comments}</span>
                 <span>#${escapeHtml(message.tag)}</span>
+                ${recommendationBadge}
             </div>
         `;
 
@@ -274,6 +498,10 @@ function renderMessages() {
 if (messageInput && messageCounter) {
     messageInput.addEventListener("input", function() {
         messageCounter.textContent = `${messageInput.value.length} / 500`;
+
+        if (messageStatus && messageStatus.classList.contains("error")) {
+            setMessageStatus("");
+        }
     });
 }
 
@@ -285,19 +513,23 @@ async function createMessage() {
     const text = messageInput.value.trim();
 
     if (!text) {
-        alert("Напишіть повідомлення перед публікацією.");
+        setMessageStatus("Напишіть повідомлення перед публікацією.", "error");
+        messageInput.focus();
         return;
     }
 
     const currentUser = getCurrentUserFromStorage();
 
     if (!currentUser) {
-        alert("Увійдіть в акаунт, щоб опублікувати повідомлення.");
+        setMessageStatus("Увійдіть в акаунт, щоб опублікувати повідомлення.", "error");
         window.location.href = "index.html";
         return;
     }
 
     try {
+        setPublishState(true);
+        setMessageStatus("Зберігаємо повідомлення...");
+
         if (typeof apiFetch !== "function" || !window.voidTalkApi) {
             throw new Error("apiFetch недоступний.");
         }
@@ -336,15 +568,23 @@ async function createMessage() {
             messageCounter.textContent = "0 / 500";
         }
 
-        await loadMessagesFromBackend();
+        setMessageStatus("Повідомлення опубліковано.", "success");
+
+        if (activeMode === "recommendations") {
+            setFeedMode("feed");
+        } else {
+            await loadMessagesFromBackend();
+        }
 
     } catch (error) {
         console.log("Не вдалося зберегти пост у backend:", error);
 
-        alert(
-            "Не вдалося зберегти повідомлення на сервері. " +
-            "Перевір Console, backend або авторизацію."
+        setMessageStatus(
+            error.message || "Не вдалося зберегти повідомлення на сервері.",
+            "error"
         );
+    } finally {
+        setPublishState(false);
     }
 }
 
@@ -355,12 +595,30 @@ if (messageForm) {
     });
 }
 
-if (publishMessageButton) {
-    publishMessageButton.addEventListener("click", function(event) {
-        event.preventDefault();
-        createMessage();
-    });
+/* Feed mode tabs */
+
+function setFeedMode(mode) {
+    activeMode = mode === "recommendations" ? "recommendations" : "feed";
+    renderModeTabs();
+
+    const url = new URL(window.location.href);
+
+    if (activeMode === "feed") {
+        url.searchParams.delete("mode");
+    } else {
+        url.searchParams.set("mode", activeMode);
+    }
+
+    window.history.replaceState({}, "", url);
+    setMessageStatus("");
+    loadMessagesFromBackend();
 }
+
+feedModeButtons.forEach(function(button) {
+    button.addEventListener("click", function() {
+        setFeedMode(button.getAttribute("data-mode"));
+    });
+});
 
 /* Filters */
 
@@ -373,6 +631,15 @@ filterButtons.forEach(function(button) {
         button.classList.add("active-filter");
         activeFilter = button.getAttribute("data-filter");
 
+        const url = new URL(window.location.href);
+
+        if (activeFilter === "all") {
+            url.searchParams.delete("tag");
+        } else {
+            url.searchParams.set("tag", activeFilter);
+        }
+
+        window.history.replaceState({}, "", url);
         renderMessages();
     });
 });
@@ -382,6 +649,16 @@ filterButtons.forEach(function(button) {
 if (messageSearch) {
     messageSearch.addEventListener("input", function() {
         searchQuery = messageSearch.value;
+
+        const url = new URL(window.location.href);
+
+        if (searchQuery.trim()) {
+            url.searchParams.set("q", searchQuery.trim());
+        } else {
+            url.searchParams.delete("q");
+        }
+
+        window.history.replaceState({}, "", url);
         renderMessages();
     });
 }
@@ -468,9 +745,10 @@ async function toggleLike(messageId) {
         });
 
         renderMessages();
+        renderMiniProfileStats();
     } catch (error) {
         console.log("Не вдалося синхронізувати лайк з backend:", error);
-        alert("Не вдалося оновити лайк. Перевірте авторизацію або backend.");
+        setMessageStatus("Не вдалося оновити лайк. Перевірте авторизацію або backend.", "error");
     }
 }
 
@@ -478,6 +756,11 @@ async function toggleLike(messageId) {
 
 function detectTag(text) {
     const lowerText = text.toLowerCase();
+    const hashtagMatch = lowerText.match(/#([a-zа-яіїєґ0-9_-]+)/i);
+
+    if (hashtagMatch) {
+        return hashtagMatch[1];
+    }
 
     if (
         lowerText.includes("#backend") ||
@@ -516,6 +799,16 @@ function formatDate(dateString) {
         hour: "2-digit",
         minute: "2-digit"
     });
+}
+
+function formatRecommendationScore(score) {
+    const numericScore = Number(score);
+
+    if (!Number.isFinite(numericScore)) {
+        return "0.00";
+    }
+
+    return numericScore.toFixed(2);
 }
 
 /* Escape HTML */
@@ -630,6 +923,12 @@ async function openUserProfile(username) {
     profileModalDescription.textContent = "Завантаження профілю...";
     profileModalAvatarImg.src = "icons/skull.svg";
     profileModalAvatar.style.background = "linear-gradient(135deg, #6d28d9, #a855f7)";
+    renderStats(
+        getStatsForUsername(username),
+        profileModalPostsCount,
+        profileModalLikesCount,
+        profileModalTopicsCount
+    );
     profileModal.classList.add("active");
 
     const profile = await getUserProfileByUsername(username);
@@ -643,6 +942,13 @@ async function openUserProfile(username) {
     profileModalAvatar.style.background = `
         linear-gradient(135deg, ${profile.avatarColorStart}, ${profile.avatarColorEnd})
     `;
+
+    renderStats(
+        getStatsForUsername(profile.accountName),
+        profileModalPostsCount,
+        profileModalLikesCount,
+        profileModalTopicsCount
+    );
 
 }
 
@@ -758,6 +1064,7 @@ async function renderMiniProfileTopBar() {
     miniProfileName.textContent = profile.accountName
         ? "@" + profile.accountName
         : "@username";
+    currentMiniProfileName = profile.accountName || "";
 
     miniProfileAvatarImg.src = profile.avatar || defaultMiniProfile.avatar;
     miniProfileAvatarImg.alt = "Аватар користувача";
@@ -765,6 +1072,7 @@ async function renderMiniProfileTopBar() {
     miniProfileAvatar.style.background = `
         linear-gradient(135deg, ${profile.avatarColorStart}, ${profile.avatarColorEnd})
     `;
+    renderMiniProfileStats();
 }
 
 /* Logout */

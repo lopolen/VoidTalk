@@ -54,6 +54,10 @@ const profileNamePreview = document.getElementById("profileNamePreview");
 const profileDescriptionPreview = document.getElementById("profileDescriptionPreview");
 const profileAvatar = document.getElementById("profileAvatar");
 const avatarBackground = document.getElementById("avatarBackground");
+const profilePostsCount = document.getElementById("profilePostsCount");
+const profileLikesCount = document.getElementById("profileLikesCount");
+const profileTopicsCount = document.getElementById("profileTopicsCount");
+const profileStatus = document.getElementById("profileStatus");
 
 const avatarButtons = document.querySelectorAll(".avatar-option");
 const resetProfileButton = document.getElementById("resetProfile");
@@ -99,6 +103,11 @@ const defaultProfile = {
 let currentProfile = loadProfile();
 let serverUser = null;
 let backendOptionalInfo = null;
+let currentStats = {
+    posts: 0,
+    likes: 0,
+    topics: 0
+};
 
 if (accountNameInput) {
     accountNameInput.readOnly = true;
@@ -141,6 +150,71 @@ function saveProfile(profile) {
     localStorage.setItem("voidTalkProfile", JSON.stringify(profileForSave));
 }
 
+function setProfileStatus(message, type = "info") {
+    if (!profileStatus) {
+        return;
+    }
+
+    profileStatus.textContent = message;
+    profileStatus.className = `form-status ${type}`;
+}
+
+function setProfileFormSubmitting(isSubmitting) {
+    if (!profileForm) {
+        return;
+    }
+
+    const submitButton = profileForm.querySelector('button[type="submit"]');
+
+    if (submitButton) {
+        if (!submitButton.dataset.defaultText) {
+            submitButton.dataset.defaultText = submitButton.textContent;
+        }
+
+        submitButton.disabled = isSubmitting;
+        submitButton.textContent = isSubmitting
+            ? "Зберігаємо..."
+            : submitButton.dataset.defaultText;
+    }
+
+    if (resetProfileButton) {
+        resetProfileButton.disabled = isSubmitting;
+    }
+}
+
+function detectTag(text) {
+    const lowerText = String(text || "").toLowerCase();
+    const hashtagMatch = lowerText.match(/#([a-zа-яіїєґ0-9_-]+)/i);
+
+    if (hashtagMatch) {
+        return hashtagMatch[1];
+    }
+
+    if (lowerText.includes("backend") || lowerText.includes("api") || lowerText.includes("база")) {
+        return "backend";
+    }
+
+    if (lowerText.includes("frontend") || lowerText.includes("html") || lowerText.includes("css") || lowerText.includes("js")) {
+        return "frontend";
+    }
+
+    return "random";
+}
+
+function renderProfileStats() {
+    if (profilePostsCount) {
+        profilePostsCount.textContent = String(currentStats.posts);
+    }
+
+    if (profileLikesCount) {
+        profileLikesCount.textContent = String(currentStats.likes);
+    }
+
+    if (profileTopicsCount) {
+        profileTopicsCount.textContent = String(currentStats.topics);
+    }
+}
+
 /* Server user */
 
 async function loadServerUser() {
@@ -161,6 +235,7 @@ async function loadServerUser() {
 
         if (user) {
             serverUser = user;
+            await loadProfileStats();
         }
     } catch (error) {
         console.log("Не вдалося завантажити користувача з backend:", error);
@@ -170,6 +245,7 @@ async function loadServerUser() {
 
             if (savedUser) {
                 serverUser = JSON.parse(savedUser);
+                await loadProfileStats();
             }
         } catch (localError) {
             console.log("Не вдалося прочитати voidTalkUser:", localError);
@@ -177,6 +253,60 @@ async function loadServerUser() {
     }
 
     renderProfile();
+}
+
+async function loadProfileStats() {
+    if (!serverUser || !serverUser.id || typeof apiFetch !== "function" || !window.voidTalkApi) {
+        renderProfileStats();
+        return;
+    }
+
+    try {
+        const postsResponse = await apiFetch(`/api/v1/posts/user/${serverUser.id}`, {
+            method: "GET"
+        });
+
+        let userPosts = [];
+
+        if (postsResponse.ok) {
+            userPosts = await voidTalkApi.readJsonResponse(postsResponse);
+        }
+
+        const topics = new Set((Array.isArray(userPosts) ? userPosts : []).map(function(post) {
+            return detectTag(post.post_body);
+        }));
+
+        let likes = 0;
+
+        const feedResponse = await apiFetch("/api/v1/posts/feed?limit=100", {
+            method: "GET"
+        });
+
+        if (feedResponse.ok) {
+            const feedPosts = await voidTalkApi.readJsonResponse(feedResponse);
+
+            if (Array.isArray(feedPosts)) {
+                likes = feedPosts
+                    .filter(function(post) {
+                        return post.user_id === serverUser.id;
+                    })
+                    .reduce(function(total, post) {
+                        return total + Number(post.likes_count || 0);
+                    }, 0);
+            }
+        }
+
+        currentStats = {
+            posts: Array.isArray(userPosts) ? userPosts.length : 0,
+            likes: likes,
+            topics: topics.size
+        };
+
+        renderProfileStats();
+    } catch (error) {
+        console.log("Не вдалося завантажити статистику профілю:", error);
+        renderProfileStats();
+    }
 }
 
 /* Optional info backend */
@@ -346,6 +476,8 @@ function renderProfile() {
             button.classList.remove("active");
         }
     });
+
+    renderProfileStats();
 }
 
 /* Live updates */
@@ -400,16 +532,21 @@ if (profileForm) {
         saveProfile(currentProfile);
 
         try {
+            setProfileFormSubmitting(true);
+            setProfileStatus("Зберігаємо профіль...");
             await saveOptionalInfoToBackend();
 
-            alert("Профіль збережено на сервері.");
+            setProfileStatus("Профіль збережено на сервері.", "success");
         } catch (error) {
             console.log("Помилка збереження профілю:", error);
 
-            alert(
+            setProfileStatus(
                 "Профіль збережено локально, але не вдалося зберегти на сервері. " +
-                "Перевір backend або авторизацію."
+                "Перевір backend або авторизацію.",
+                "error"
             );
+        } finally {
+            setProfileFormSubmitting(false);
         }
     });
 }
@@ -425,11 +562,15 @@ if (resetProfileButton) {
         renderProfile();
 
         try {
+            setProfileFormSubmitting(true);
+            setProfileStatus("Скидаємо профіль...");
             await saveOptionalInfoToBackend();
-            alert("Профіль скинуто і збережено на сервері.");
+            setProfileStatus("Профіль скинуто і збережено на сервері.", "success");
         } catch (error) {
             console.log("Помилка скидання профілю на сервері:", error);
-            alert("Профіль скинуто локально.");
+            setProfileStatus("Профіль скинуто локально.", "error");
+        } finally {
+            setProfileFormSubmitting(false);
         }
     });
 }

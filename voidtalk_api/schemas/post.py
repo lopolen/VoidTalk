@@ -43,6 +43,7 @@ class RecommendedPostRead(PostRead):
     likes_count: int
     hashtags: list[str]
     recommendation_score: float
+    author: UserPublicProfileRead
 
 
 class FeedPostRead(PostRead):
