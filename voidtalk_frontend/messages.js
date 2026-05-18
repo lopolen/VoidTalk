@@ -255,7 +255,13 @@ messageForm.addEventListener("submit", async function(event) {
         return;
     }
 
-    const currentUser = getCurrentUser();
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+        alert("Увійдіть в акаунт, щоб опублікувати повідомлення.");
+        window.location.href = "index.html";
+        return;
+    }
 
     const newMessage = {
         id: Date.now(),
@@ -421,13 +427,23 @@ function loadMessagesFromLocalStorage() {
 
 /* Helpers */
 
-function getCurrentUser() {
+async function getCurrentUser() {
+    try {
+        const sessionUser = await voidTalkApi.getCurrentSession();
+
+        if (sessionUser) {
+            return {
+                username: sessionUser.username || "guest"
+            };
+        }
+    } catch (error) {
+        console.log("Не вдалося перевірити сесію перед публікацією:", error);
+    }
+
     const savedUser = localStorage.getItem("voidTalkUser");
 
     if (!savedUser) {
-        return {
-            username: "guest"
-        };
+        return null;
     }
 
     try {

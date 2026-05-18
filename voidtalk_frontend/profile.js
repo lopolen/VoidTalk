@@ -65,6 +65,8 @@ const defaultProfile = {
 
 let currentProfile = loadProfile();
 
+loadProfileFromSession();
+
 function loadProfile() {
     const savedProfile = localStorage.getItem("voidTalkProfile");
 
@@ -121,6 +123,26 @@ function renderProfile() {
             button.classList.remove("active");
         }
     });
+}
+
+async function loadProfileFromSession() {
+    try {
+        const user = await voidTalkApi.getCurrentSession();
+
+        if (!user) {
+            return;
+        }
+
+        currentProfile = {
+            ...currentProfile,
+            accountName: user.username
+        };
+
+        saveProfile(currentProfile);
+        renderProfile();
+    } catch (error) {
+        console.log("Не вдалося завантажити профіль із сесії:", error);
+    }
 }
 
 /* Live updates */

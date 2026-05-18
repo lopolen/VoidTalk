@@ -4,6 +4,16 @@ const registerForm = document.getElementById("registerForm");
 const loginTab = document.getElementById("loginTab");
 const registerTab = document.getElementById("registerTab");
 
+checkCurrentSession();
+
+async function checkCurrentSession() {
+    try {
+        await voidTalkApi.getCurrentSession();
+    } catch (error) {
+        console.log("Не вдалося перевірити поточну сесію:", error);
+    }
+}
+
 /* Перемикання форм входу та реєстрації */
 
 function showLogin() {
