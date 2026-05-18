@@ -9,6 +9,7 @@ VoidTalk - навчальна міні-соціальна платформа з 
 - Перевірка поточного користувача через `GET /api/v1/users/me`.
 - Пошук користувача за username.
 - Створення постів авторизованим користувачем.
+- MVP-рекомендації постів: релевантність по хештегах із штрафом за популярність.
 - CORS для роботи frontend і backend на різних dev-портах.
 
 ## Структура проєкту
@@ -132,9 +133,37 @@ POST   /api/v1/users/logout
 GET    /api/v1/users/me
 GET    /api/v1/users/search/{username}
 POST   /api/v1/posts
+GET    /api/v1/posts/recommendations
 GET    /api/v1/posts/user/{user_id}
 DELETE /api/v1/posts/{post_id}
 ```
+
+## Рекомендації постів
+
+Endpoint:
+
+```http
+GET /api/v1/posts/recommendations?limit=20
+```
+
+Рекомендації доступні авторизованому користувачу. MVP-алгоритм:
+
+- витягує хештеги з нових постів і зберігає їх у `hashtags` / `posts_hashtags`;
+- будує інтерес користувача з хештегів у лайкнутих і власних постах;
+- піднімає релевантні пости, але зменшує score для постів із більшою кількістю лайків;
+- додає невеликий exploration-score, щоб нові теми теж могли з'являтися у стрічці.
+
+Налаштування лежать у:
+
+```text
+voidtalk_api/cfg/recommendations.env
+```
+
+Основні змінні: `RECOMMENDATIONS_LIKED_HASHTAG_WEIGHT`,
+`RECOMMENDATIONS_AUTHORED_HASHTAG_WEIGHT`,
+`RECOMMENDATIONS_POPULARITY_PENALTY_POWER`,
+`RECOMMENDATIONS_FRESHNESS_HALF_LIFE_DAYS`,
+`RECOMMENDATIONS_EXPLORATION_SCORE`.
 
 ## Типові проблеми
 

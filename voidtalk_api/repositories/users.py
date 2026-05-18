@@ -3,7 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from voidtalk_api.core.exceptions import ResourceAlreadyExists
-from voidtalk_api.models.user import User
+from voidtalk_api.models.user import User, UserOptionalInfo
 
 
 class UserRepository:
@@ -26,6 +26,7 @@ class UserRepository:
 
     def create(self, username: str, email: str, password_hash: str) -> User:
         user = User(username=username, email=email, password_hash=password_hash)
+        user.optional_info = UserOptionalInfo()
 
         self.db.add(user)
         try:

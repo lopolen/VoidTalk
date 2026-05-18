@@ -22,3 +22,22 @@ class PostRead(BaseModel):
     user_id: int
     post_body: str
     created_at: datetime
+
+
+class PostLikeRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    user_id: int
+    post_id: int
+    created_at: datetime
+
+
+class PostLikeCountRead(BaseModel):
+    post_id: int
+    likes_count: int
+
+
+class RecommendedPostRead(PostRead):
+    likes_count: int
+    hashtags: list[str]
+    recommendation_score: float

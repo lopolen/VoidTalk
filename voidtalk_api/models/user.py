@@ -39,6 +39,11 @@ class User(Base):
         cascade="all, delete-orphan",
     )
 
+    post_likes: Mapped[list["PostUserLike"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
 
 class UserOptionalInfo(Base):
     __tablename__ = "user_optional_info"
