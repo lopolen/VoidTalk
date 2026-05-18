@@ -65,6 +65,8 @@ const defaultProfile = {
 
 let currentProfile = loadProfile();
 
+loadProfileFromSession();
+
 function loadProfile() {
     const savedProfile = localStorage.getItem("voidTalkProfile");
 
@@ -123,10 +125,30 @@ function renderProfile() {
     });
 }
 
+async function loadProfileFromSession() {
+    try {
+        const user = await voidTalkApi.getCurrentSession();
+
+        if (!user) {
+            return;
+        }
+
+        currentProfile = {
+            ...currentProfile,
+            accountName: user.username
+        };
+
+        saveProfile(currentProfile);
+        renderProfile();
+    } catch (error) {
+        console.log("Не вдалося завантажити профіль із сесії:", error);
+    }
+}
+
 /* Live updates */
 
 accountNameInput.addEventListener("input", function() {
-    accountNameInput.value = accountNameInput.value.replace(/\s/g, "");
+    accountNameInput.value = accountNameInput.value.replace(/[^a-zA-Z0-9_.]/g, "");
 
     currentProfile.accountName = accountNameInput.value;
     renderProfile();
@@ -195,12 +217,8 @@ renderProfile();
 /*
     Backend-ready:
 
-    fetch("/api/profile", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(currentProfile)
+    apiFetch("/api/v1/users/me", {
+        method: "GET"
     });
 
     Об'єкт профілю:
@@ -225,7 +243,11 @@ const iconPaths = [
     "icons/cube-inside.svg",
     "icons/dumbbell-alt.svg",
     "icons/buddhism.svg",
-    "icons/transgender.svg"
+    "icons/transgender.svg",
+    "icons/loader-lines.svg",
+    "icons/virus.svg",
+    "icons/radiation.svg",
+    "icons/command.svg"
 ];
 
 const settings = {

@@ -4,6 +4,18 @@ const registerForm = document.getElementById("registerForm");
 const loginTab = document.getElementById("loginTab");
 const registerTab = document.getElementById("registerTab");
 
+checkCurrentSession();
+
+async function checkCurrentSession() {
+    try {
+        await voidTalkApi.getCurrentSession();
+    } catch (error) {
+        console.log("Не вдалося перевірити поточну сесію:", error);
+    }
+}
+
+/* Перемикання форм входу та реєстрації */
+
 function showLogin() {
     loginForm.classList.add("active-form");
     registerForm.classList.remove("active-form");
@@ -20,7 +32,7 @@ function showRegister() {
     loginTab.classList.remove("active");
 }
 
-
+/* Навігація */
 
 const pageLinks = document.querySelectorAll("a[data-page]");
 
@@ -28,64 +40,122 @@ pageLinks.forEach(function(link) {
     link.addEventListener("click", function(event) {
         const page = link.getAttribute("data-page");
 
-        console.log("Майбутня сторінка:", page);
-
-        /*
-            Коли реальні файли зробити:
-
+        if (page) {
             event.preventDefault();
             window.location.href = page;
-        */
-
-
+        }
     });
 });
 
+/* Вхід користувача */
 
+if (loginForm) {
+    loginForm.addEventListener("submit", async function(event) {
+        event.preventDefault();
 
-loginForm.addEventListener("submit", function(event) {
-    event.preventDefault();
+        const formData = {
+            login: loginForm.email.value,
+            password: loginForm.password.value
+        };
 
-    const formData = {
-        email: loginForm.email.value,
-        password: loginForm.password.value
-    };
+        try {
+            const response = await apiFetch("/api/v1/users/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(formData)
+            });
 
-    console.log("Дані для входу:", formData);
+            if (!response.ok) {
+                const errorMessage = await voidTalkApi.getApiErrorMessage(response, "Помилка входу");
+                alert(errorMessage);
+                return;
+            }
 
-    /*
-        fetch("/api/login", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(formData)
-        });
-    */
-});
+            const user = await voidTalkApi.readJsonResponse(response);
 
-registerForm.addEventListener("submit", function(event) {
-    event.preventDefault();
+            localStorage.setItem("voidTalkUser", JSON.stringify(user));
 
-    const formData = {
-        username: registerForm.username.value,
-        email: registerForm.email.value,
-        password: registerForm.password.value
-    };
+            alert("Вхід успішний");
+            window.location.href = "profile.html";
 
-    console.log("Дані для реєстрації:", formData);
+        } catch (error) {
+            console.log("Помилка входу:", error);
+            alert(
+                "Не вдалося підключитися до сервера. " +
+                `Перевірте, чи запущений backend на ${voidTalkApi.getApiBaseUrl()}.`
+            );
+        }
+    });
+}
 
-    /*
-        fetch("/api/register", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(formData)
-        });
-    */
-});
+/* Реєстрація користувача */
 
+if (registerForm) {
+    registerForm.addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        const formData = {
+            username: registerForm.username.value,
+            email: registerForm.email.value,
+            password: registerForm.password.value
+        };
+
+        try {
+            const response = await apiFetch("/api/v1/users/register", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (!response.ok) {
+                const errorMessage = await voidTalkApi.getApiErrorMessage(response, "Помилка реєстрації");
+                alert(errorMessage);
+                return;
+            }
+
+            const user = await voidTalkApi.readJsonResponse(response);
+            const loginResponse = await apiFetch("/api/v1/users/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    login: formData.email,
+                    password: formData.password
+                })
+            });
+
+            if (!loginResponse.ok) {
+                const errorMessage = await voidTalkApi.getApiErrorMessage(
+                    loginResponse,
+                    "Реєстрація успішна, але автоматичний вхід не вдався."
+                );
+                alert(errorMessage);
+                showLogin();
+                return;
+            }
+
+            localStorage.setItem("voidTalkUser", JSON.stringify(user));
+            localStorage.setItem("voidTalkProfileNeedsSetup", "true");
+
+            alert("Реєстрація успішна. Тепер налаштуйте профіль.");
+            window.location.href = "profile.html";
+
+        } catch (error) {
+            console.log("Помилка реєстрації:", error);
+            alert(
+                "Не вдалося підключитися до сервера. " +
+                `Перевірте, чи запущений backend на ${voidTalkApi.getApiBaseUrl()}.`
+            );
+        }
+    });
+}
+
+/* Easter egg: 7 кліків по логотипу */
 
 const logo = document.getElementById("logo");
 const logoSound = document.getElementById("logoSound");
@@ -122,7 +192,7 @@ if (logo && logoSound) {
     });
 }
 
-
+/* Літаючі іконки на фоні */
 
 const floatingIconsContainer = document.getElementById("floatingIcons");
 
@@ -134,7 +204,11 @@ const iconPaths = [
     "icons/cube-inside.svg",
     "icons/dumbbell-alt.svg",
     "icons/buddhism.svg",
-    "icons/transgender.svg"
+    "icons/transgender.svg",
+    "icons/loader-lines.svg",
+    "icons/virus.svg",
+    "icons/radiation.svg",
+    "icons/command.svg"
 ];
 
 const settings = {
@@ -208,6 +282,10 @@ function resetIcon(icon, firstStart = false) {
 }
 
 function createIconPool() {
+    if (!floatingIconsContainer) {
+        return;
+    }
+
     for (let i = 0; i < settings.poolSize; i++) {
         const img = document.createElement("img");
 
@@ -265,10 +343,6 @@ function updateIcons(currentTime) {
             icon.changeDirectionTimer = randomNumber(3, 7);
         }
 
-        /*
-            Плавна зміна напрямку.
-            Менше число = плавніше, але повільніше реагує.
-        */
         icon.vx += (icon.targetVx - icon.vx) * 0.015;
         icon.vy += (icon.targetVy - icon.vy) * 0.015;
 
@@ -295,7 +369,14 @@ function updateIcons(currentTime) {
             rotate(${icon.rotation}deg)
             scale(${icon.scale + Math.sin(icon.wave) * 0.025})
         `;
-        if (icon.life >= icon.lifeLimit) {
+
+        if (
+            icon.life >= icon.lifeLimit ||
+            icon.x < -180 ||
+            icon.x > window.innerWidth + 180 ||
+            icon.y < -180 ||
+            icon.y > window.innerHeight + 180
+        ) {
             resetIcon(icon);
         }
     }
@@ -307,4 +388,3 @@ if (floatingIconsContainer) {
     createIconPool();
     requestAnimationFrame(updateIcons);
 }
-
