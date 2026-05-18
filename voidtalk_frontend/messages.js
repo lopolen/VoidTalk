@@ -1,56 +1,17 @@
 /*
     messages.js
-    Сторінка стрічки повідомлень VoidTalk.
-
-    Працює зараз:
-    - тестові повідомлення;
-    - створення нового повідомлення;
+    Сторінка повідомлень VoidTalk.
+    Повна версія:
+    - створення повідомлень;
     - лайки;
-    - пошук за текстом, автором і тегом;
-    - фільтрація за тегами;
+    - фільтри;
+    - пошук;
     - localStorage;
-    - підготовка до backend.
-
-    Важливо:
-    Frontend не повинен підключатися напряму до бази даних.
-
-    Правильна схема:
-
-    Frontend messages.js
-        ↓ fetch()
-    Backend FastAPI /api/v1/posts
-        ↓ SQLAlchemy
-    Database PostgreSQL
-
-    У backend уже є:
-    POST /api/v1/posts
-    GET /api/v1/posts/user/{user_id}
-    DELETE /api/v1/posts/{post_id}
-
-    Для повної стрічки всіх повідомлень бажано додати:
-    GET /api/v1/posts
-
-    Приклад backend-підготовки:
-
-    # voidtalk_api/api/v1/endpoints/posts.py
-
-    @router.get("", response_model=list[PostRead])
-    def list_posts(db: Session = Depends(get_db)):
-        return PostService(db).list_posts()
-
-    # voidtalk_api/services/posts.py
-
-    def list_posts(self) -> list[Post]:
-        return self.posts.list_all()
-
-    # voidtalk_api/repositories/posts.py
-
-    def list_all(self) -> list[Post]:
-        return (
-            self.db.query(Post)
-            .order_by(Post.created_at.desc())
-            .all()
-        )
+    - підготовка до backend;
+    - міні-профіль зверху з даними зі сторінки профілю;
+    - logout;
+    - Easter egg;
+    - літаючі іконки.
 */
 
 /* Elements */
@@ -64,6 +25,11 @@ const messageSearch = document.getElementById("messageSearch");
 
 const logo = document.getElementById("logo");
 const logoSound = document.getElementById("logoSound");
+
+const miniProfileName = document.getElementById("miniProfileName");
+const miniProfileAvatar = document.getElementById("miniProfileAvatar");
+const miniProfileAvatarImg = document.getElementById("miniProfileAvatarImg");
+const logoutButton = document.getElementById("logoutButton");
 
 let activeFilter = "all";
 let searchQuery = "";
@@ -141,9 +107,13 @@ const testMessages = [
 
 let messages = [...testMessages];
 
-/* Render */
+/* Render messages */
 
 function renderMessages() {
+    if (!messagesList) {
+        return;
+    }
+
     messagesList.innerHTML = "";
 
     const normalizedSearch = searchQuery.trim().toLowerCase().replace("#", "");
@@ -241,98 +211,87 @@ function toggleLike(messageId) {
 
 /* Create message */
 
-messageInput.addEventListener("input", function() {
-    messageCounter.textContent = `${messageInput.value.length} / 500`;
-});
+if (messageInput && messageCounter) {
+    messageInput.addEventListener("input", function() {
+        messageCounter.textContent = `${messageInput.value.length} / 500`;
+    });
+}
 
-messageForm.addEventListener("submit", async function(event) {
-    event.preventDefault();
+if (messageForm) {
+    messageForm.addEventListener("submit", async function(event) {
+        event.preventDefault();
 
-    const text = messageInput.value.trim();
+        const text = messageInput.value.trim();
 
-    if (!text) {
-        alert("Напишіть повідомлення перед публікацією.");
-        return;
-    }
-
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-        alert("Увійдіть в акаунт, щоб опублікувати повідомлення.");
-        window.location.href = "index.html";
-        return;
-    }
-
-    const newMessage = {
-        id: Date.now(),
-        username: currentUser.username,
-        avatar: currentUser.username.charAt(0).toUpperCase(),
-        time: "щойно",
-        text: text,
-        likes: 0,
-        comments: 0,
-        tag: detectTag(text),
-        liked: false
-    };
-
-    /*
-        FRONTEND → BACKEND
-
-        Endpoint:
-        POST /api/v1/posts
-
-        Body:
-        {
-            "post_body": "Текст повідомлення"
+        if (!text) {
+            alert("Напишіть повідомлення перед публікацією.");
+            return;
         }
 
-        Backend сам визначає користувача через cookie voidtalk_session.
+        const currentUser = await getCurrentUser();
 
-        Через спільний helper:
-        apiFetch("/api/v1/posts", ...)
-
-        Якщо frontend відкритий через Live Server, а backend на 127.0.0.1:8000:
-        apiFetch автоматично відправить запит на backend.
-    */
-
-    try {
-        const response = await apiFetch("/api/v1/posts", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                post_body: text
-            })
-        });
-
-        if (response.ok) {
-            const savedPost = await voidTalkApi.readJsonResponse(response);
-
-            newMessage.id = savedPost.id;
-            newMessage.text = savedPost.post_body;
-            newMessage.time = "збережено в базі";
-
-            console.log("Пост збережено через backend:", savedPost);
-        } else {
-            const errorMessage = await voidTalkApi.getApiErrorMessage(
-                response,
-                "Backend не прийняв пост."
-            );
-            console.log(errorMessage, "Показуємо frontend-версію.");
+        if (!currentUser) {
+            alert("Увійдіть в акаунт, щоб опублікувати повідомлення.");
+            window.location.href = "index.html";
+            return;
         }
-    } catch (error) {
-        console.log("Backend недоступний. Працює тестовий frontend-режим:", error);
-    }
 
-    messages.unshift(newMessage);
+        const newMessage = {
+            id: Date.now(),
+            username: currentUser.username,
+            avatar: currentUser.username.charAt(0).toUpperCase(),
+            time: "щойно",
+            text: text,
+            likes: 0,
+            comments: 0,
+            tag: detectTag(text),
+            liked: false
+        };
 
-    saveMessagesToLocalStorage();
-    renderMessages();
+        try {
+            if (typeof apiFetch === "function" && window.voidTalkApi) {
+                const response = await apiFetch("/api/v1/posts", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        post_body: text
+                    })
+                });
 
-    messageInput.value = "";
-    messageCounter.textContent = "0 / 500";
-});
+                if (response.ok) {
+                    const savedPost = await voidTalkApi.readJsonResponse(response);
+
+                    if (savedPost) {
+                        newMessage.id = savedPost.id || newMessage.id;
+                        newMessage.text = savedPost.post_body || newMessage.text;
+                        newMessage.time = "збережено в базі";
+                    }
+
+                    console.log("Пост збережено через backend:", savedPost);
+                } else {
+                    const errorMessage = await voidTalkApi.getApiErrorMessage(
+                        response,
+                        "Backend не прийняв пост."
+                    );
+
+                    console.log(errorMessage, "Показуємо frontend-версію.");
+                }
+            }
+        } catch (error) {
+            console.log("Backend недоступний. Працює тестовий frontend-режим:", error);
+        }
+
+        messages.unshift(newMessage);
+
+        saveMessagesToLocalStorage();
+        renderMessages();
+
+        messageInput.value = "";
+        messageCounter.textContent = "0 / 500";
+    });
+}
 
 /* Filters */
 
@@ -356,49 +315,6 @@ if (messageSearch) {
         searchQuery = messageSearch.value;
         renderMessages();
     });
-}
-
-/* Backend loading */
-
-async function loadMessagesFromBackend() {
-    /*
-        Для повної роботи треба додати на backend:
-        GET /api/v1/posts
-
-        Потім можна увімкнути цей код:
-
-        try {
-            const response = await apiFetch("/api/v1/posts", {
-                method: "GET"
-            });
-
-            if (!response.ok) {
-                throw new Error("Не вдалося отримати повідомлення з backend.");
-            }
-
-            const backendPosts = await voidTalkApi.readJsonResponse(response);
-
-            messages = backendPosts.map(function(post) {
-                return {
-                    id: post.id,
-                    username: "user_" + post.user_id,
-                    avatar: "U",
-                    time: formatDate(post.created_at),
-                    text: post.post_body,
-                    likes: 0,
-                    comments: 0,
-                    tag: detectTag(post.post_body),
-                    liked: false
-                };
-            });
-
-            saveMessagesToLocalStorage();
-            renderMessages();
-
-        } catch (error) {
-            console.log("Працюємо з тестовими повідомленнями:", error);
-        }
-    */
 }
 
 /* LocalStorage */
@@ -425,19 +341,37 @@ function loadMessagesFromLocalStorage() {
     }
 }
 
-/* Helpers */
+/* Current user */
 
 async function getCurrentUser() {
     try {
-        const sessionUser = await voidTalkApi.getCurrentSession();
+        if (window.voidTalkApi && typeof voidTalkApi.getCurrentSession === "function") {
+            const sessionUser = await voidTalkApi.getCurrentSession();
 
-        if (sessionUser) {
-            return {
-                username: sessionUser.username || "guest"
-            };
+            if (sessionUser) {
+                return {
+                    username: sessionUser.username || "guest"
+                };
+            }
         }
     } catch (error) {
         console.log("Не вдалося перевірити сесію перед публікацією:", error);
+    }
+
+    const savedProfile = localStorage.getItem("voidTalkProfile");
+
+    if (savedProfile) {
+        try {
+            const profile = JSON.parse(savedProfile);
+
+            if (profile.accountName) {
+                return {
+                    username: profile.accountName
+                };
+            }
+        } catch (error) {
+            console.log("Не вдалося прочитати voidTalkProfile:", error);
+        }
     }
 
     const savedUser = localStorage.getItem("voidTalkUser");
@@ -458,6 +392,8 @@ async function getCurrentUser() {
         };
     }
 }
+
+/* Tags */
 
 function detectTag(text) {
     const lowerText = text.toLowerCase();
@@ -484,6 +420,8 @@ function detectTag(text) {
     return "random";
 }
 
+/* Date */
+
 function formatDate(dateString) {
     const date = new Date(dateString);
 
@@ -494,11 +432,12 @@ function formatDate(dateString) {
     return date.toLocaleString("uk-UA", {
         day: "2-digit",
         month: "2-digit",
-        year: "numeric",
         hour: "2-digit",
         minute: "2-digit"
     });
 }
+
+/* Escape HTML */
 
 function escapeHtml(value) {
     return String(value)
@@ -507,6 +446,66 @@ function escapeHtml(value) {
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+}
+
+/* Mini profile in top bar */
+
+const defaultMiniProfile = {
+    accountName: "username",
+    avatar: "icons/skull.svg",
+    avatarColorStart: "#6d28d9",
+    avatarColorEnd: "#a855f7"
+};
+
+function loadMiniProfileFromStorage() {
+    const savedProfile = localStorage.getItem("voidTalkProfile");
+
+    if (!savedProfile) {
+        return { ...defaultMiniProfile };
+    }
+
+    try {
+        const profile = JSON.parse(savedProfile);
+
+        return {
+            ...defaultMiniProfile,
+            ...profile
+        };
+    } catch (error) {
+        console.log("Не вдалося прочитати профіль для верхньої панелі:", error);
+        return { ...defaultMiniProfile };
+    }
+}
+
+function renderMiniProfileTopBar() {
+    if (!miniProfileName || !miniProfileAvatar || !miniProfileAvatarImg) {
+        return;
+    }
+
+    const profile = loadMiniProfileFromStorage();
+
+    miniProfileName.textContent = profile.accountName
+        ? "@" + profile.accountName
+        : "@username";
+
+    miniProfileAvatarImg.src = profile.avatar || defaultMiniProfile.avatar;
+    miniProfileAvatarImg.alt = "Аватар користувача";
+
+    miniProfileAvatar.style.background = `
+        linear-gradient(135deg, ${profile.avatarColorStart}, ${profile.avatarColorEnd})
+    `;
+}
+
+/* Logout */
+
+if (logoutButton) {
+    logoutButton.addEventListener("click", function(event) {
+        event.preventDefault();
+
+        localStorage.removeItem("voidTalkUser");
+
+        window.location.href = "index.html";
+    });
 }
 
 /* Easter egg */
@@ -532,8 +531,6 @@ if (logo && logoSound) {
             logoSound.play().catch(function(error) {
                 console.log("Помилка звуку:", error);
             });
-        } else {
-            window.location.href = "index.html";
         }
     });
 }
@@ -559,14 +556,19 @@ const iconPaths = [
 
 const settings = {
     poolSize: 32,
+
     minSize: 28,
     maxSize: 58,
+
     minLife: 14,
     maxLife: 26,
+
     minSpeed: 4,
     maxSpeed: 14,
+
     minOpacity: 0.05,
     maxOpacity: 0.13,
+
     fadePart: 0.28
 };
 
@@ -667,7 +669,9 @@ function updateIcons(currentTime) {
     const deltaTime = Math.min((currentTime - lastTime) / 1000, 0.04);
     lastTime = currentTime;
 
-    icons.forEach(function(icon) {
+    for (let i = 0; i < icons.length; i++) {
+        const icon = icons[i];
+
         icon.life += deltaTime;
         icon.wave += deltaTime * icon.waveSpeed;
         icon.changeDirectionTimer -= deltaTime;
@@ -699,32 +703,31 @@ function updateIcons(currentTime) {
             opacity = icon.maxOpacity * ((1 - progress) / settings.fadePart);
         }
 
-        icon.element.style.opacity = Math.max(opacity, 0).toString();
+        opacity = Math.max(0, Math.min(icon.maxOpacity, opacity));
+
+        icon.element.style.opacity = opacity.toString();
+
         icon.element.style.transform = `
             translate3d(${icon.x}px, ${icon.y}px, 0)
             rotate(${icon.rotation}deg)
-            scale(${icon.scale})
+            scale(${icon.scale + Math.sin(icon.wave) * 0.025})
         `;
 
-        if (
-            icon.life >= icon.lifeLimit ||
-            icon.x < -180 ||
-            icon.x > window.innerWidth + 180 ||
-            icon.y < -180 ||
-            icon.y > window.innerHeight + 180
-        ) {
+        if (icon.life >= icon.lifeLimit) {
             resetIcon(icon);
         }
-    });
+    }
 
     requestAnimationFrame(updateIcons);
 }
 
-/* Init */
+/* Initial start */
 
 loadMessagesFromLocalStorage();
 renderMessages();
-loadMessagesFromBackend();
+renderMiniProfileTopBar();
 
-createIconPool();
-requestAnimationFrame(updateIcons);
+if (floatingIconsContainer) {
+    createIconPool();
+    requestAnimationFrame(updateIcons);
+}

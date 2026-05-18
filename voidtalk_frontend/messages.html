@@ -14,17 +14,48 @@
 
     <div class="floating-icons" id="floatingIcons" aria-hidden="true"></div>
 
-    <header class="header">
-        <a href="index.html" class="logo" id="logo">VoidTalk</a>
+    <div class="top-interface">
+        <a href="index.html" class="logout-button" id="logoutButton">Вийти</a>
 
-        <nav class="nav">
-            <a href="index.html">Головна</a>
-            <a href="#" class="active-page">Повідомлення</a>
-            <a href="hashtags.html">Хештеги</a>
-            <a href="about.html">Про сайт</a>
-            <a href="profile.html">Профіль</a>
-        </nav>
-    </header>
+        <header class="header">
+            <a href="index.html" class="logo" id="logo">VoidTalk</a>
+
+            <nav class="nav">
+                <a href="index.html">Головна</a>
+                <a href="#" class="active-page">Повідомлення</a>
+                <a href="about.html">Про сайт</a>
+                <a href="profile.html">Профіль</a>
+            </nav>
+        </header>
+
+        <aside class="mini-profile-bar">
+            <div class="mini-profile-avatar" id="miniProfileAvatar">
+                <img id="miniProfileAvatarImg" src="icons/skull.svg" alt="Аватар користувача">
+            </div>
+
+            <div class="mini-profile-info">
+                <strong id="miniProfileName">@username</strong>
+                <span>активний акаунт</span>
+            </div>
+
+            <div class="mini-profile-stats">
+                <div>
+                    <strong>12</strong>
+                    <span>Постів</span>
+                </div>
+
+                <div>
+                    <strong>28</strong>
+                    <span>Ком.</span>
+                </div>
+
+                <div>
+                    <strong>3</strong>
+                    <span>Тем</span>
+                </div>
+            </div>
+        </aside>
+    </div>
 
     <main class="main messages-main">
 
@@ -64,12 +95,15 @@
                 <button class="secondary-btn filter-btn active-filter" type="button" data-filter="all">
                     Усі
                 </button>
+
                 <button class="secondary-btn filter-btn" type="button" data-filter="frontend">
                     #frontend
                 </button>
+
                 <button class="secondary-btn filter-btn" type="button" data-filter="backend">
                     #backend
                 </button>
+
                 <button class="secondary-btn filter-btn" type="button" data-filter="random">
                     #random
                 </button>
