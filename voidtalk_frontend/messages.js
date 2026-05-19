@@ -53,6 +53,8 @@ let messages = [];
 let statsMessages = [];
 const profileCache = new Map();
 let currentMiniProfileName = "";
+const MIN_POST_LENGTH = 3;
+const MAX_POST_LENGTH = 1000;
 
 applyInitialUrlFilters();
 
@@ -497,7 +499,7 @@ function renderMessages() {
 
 if (messageInput && messageCounter) {
     messageInput.addEventListener("input", function() {
-        messageCounter.textContent = `${messageInput.value.length} / 500`;
+        messageCounter.textContent = `${messageInput.value.length} / ${MAX_POST_LENGTH}`;
 
         if (messageStatus && messageStatus.classList.contains("error")) {
             setMessageStatus("");
@@ -514,6 +516,12 @@ async function createMessage() {
 
     if (!text) {
         setMessageStatus("Напишіть повідомлення перед публікацією.", "error");
+        messageInput.focus();
+        return;
+    }
+
+    if (text.length < MIN_POST_LENGTH) {
+        setMessageStatus("Повідомлення має містити щонайменше 3 символи.", "error");
         messageInput.focus();
         return;
     }
@@ -565,7 +573,7 @@ async function createMessage() {
         messageInput.value = "";
 
         if (messageCounter) {
-            messageCounter.textContent = "0 / 500";
+            messageCounter.textContent = `0 / ${MAX_POST_LENGTH}`;
         }
 
         setMessageStatus("Повідомлення опубліковано.", "success");

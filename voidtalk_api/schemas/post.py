@@ -6,7 +6,7 @@ from voidtalk_api.schemas.user import UserPublicProfileRead
 
 
 class PostCreate(BaseModel):
-    post_body: str = Field(min_length=1)
+    post_body: str = Field(min_length=3, max_length=1000)
 
     @field_validator("post_body")
     @classmethod
@@ -14,6 +14,10 @@ class PostCreate(BaseModel):
         post_body = post_body.strip()
         if not post_body:
             raise ValueError("Post body is required.")
+        if len(post_body) < 3:
+            raise ValueError("Post body must be at least 3 characters long.")
+        if len(post_body) > 1000:
+            raise ValueError("Post body must be at most 1000 characters long.")
         return post_body
 
 

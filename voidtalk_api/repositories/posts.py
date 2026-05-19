@@ -1,4 +1,6 @@
-from sqlalchemy import select
+from datetime import datetime
+
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from voidtalk_api.models.post import Post
@@ -38,6 +40,22 @@ class PostRepository:
                 .limit(limit)
             )
         )
+
+    def get_latest_by_user_id(self, user_id: int) -> Post | None:
+        return self.db.scalar(
+            select(Post)
+            .where(Post.user_id == user_id)
+            .order_by(Post.created_at.desc(), Post.id.desc())
+            .limit(1)
+        )
+
+    def count_by_user_id_since(self, user_id: int, since: datetime) -> int:
+        return self.db.scalar(
+            select(func.count(Post.id)).where(
+                Post.user_id == user_id,
+                Post.created_at >= since,
+            )
+        ) or 0
 
     def delete(self, post: Post) -> None:
         self.db.delete(post)
