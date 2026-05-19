@@ -6,6 +6,26 @@ const logoSound = document.getElementById("logoSound");
 
 let currentUser = null;
 let myPosts = [];
+let currentUserProfile = {
+    avatar: "icons/skull.svg",
+    avatarColorStart: "#6d28d9",
+    avatarColorEnd: "#a855f7"
+};
+
+const avatarMap = {
+    1: "icons/skull.svg",
+    2: "icons/react.svg",
+    3: "icons/webhook.svg",
+    4: "icons/send-alt.svg",
+    5: "icons/cube-inside.svg",
+    6: "icons/dumbbell-alt.svg",
+    7: "icons/buddhism.svg",
+    8: "icons/transgender.svg",
+    9: "icons/loader-lines.svg",
+    10: "icons/virus.svg",
+    11: "icons/radiation.svg",
+    12: "icons/command.svg"
+};
 
 function setStatus(message, type = "info") {
     if (!myPostsStatus) {
@@ -56,12 +76,110 @@ function detectTags(text) {
     return tags.length > 0 ? tags : ["random"];
 }
 
+function detectUnicodeTags(text) {
+    const matches = String(text || "").matchAll(/#([\p{L}\p{N}_-]+)/gu);
+    const tags = [];
+
+    for (const match of matches) {
+        const tag = match[1].toLowerCase();
+
+        if (tag && !tags.includes(tag)) {
+            tags.push(tag);
+        }
+    }
+
+    return tags.length > 0 ? tags : ["random"];
+}
+
+function normalizePostTags(post) {
+    const tags = [];
+
+    detectUnicodeTags(post.post_body).forEach(function(tag) {
+        if (tag !== "random" && !tags.includes(tag)) {
+            tags.push(tag);
+        }
+    });
+
+    if (Array.isArray(post.hashtags) && post.hashtags.length > 0) {
+        post.hashtags.forEach(function(hashtag) {
+            const tag = String(hashtag || "").replace(/^#/, "").toLowerCase();
+
+            if (tag && tag !== "random" && !tags.includes(tag)) {
+                tags.push(tag);
+            }
+        });
+    }
+
+    return tags.length > 0 ? tags : ["random"];
+}
+
+function getAvatarPathByIconId(iconId) {
+    return avatarMap[Number(iconId)] || avatarMap[1];
+}
+
+function normalizeOptionalInfo(optionalInfo) {
+    return {
+        avatar: getAvatarPathByIconId(optionalInfo?.icon_id || 1),
+        avatarColorStart: optionalInfo?.first_icon_color || "#6d28d9",
+        avatarColorEnd: optionalInfo?.second_icon_color || "#a855f7"
+    };
+}
+
+function getAvatarStyle(profile) {
+    const colorStart = profile?.avatarColorStart || "#6d28d9";
+    const colorEnd = profile?.avatarColorEnd || "#a855f7";
+
+    return `background: linear-gradient(135deg, ${escapeHtml(colorStart)}, ${escapeHtml(colorEnd)});`;
+}
+
+function renderAvatarImage(profile, username) {
+    const avatar = profile?.avatar || "icons/skull.svg";
+
+    return `<img src="${escapeHtml(avatar)}" alt="${escapeHtml("Avatar " + username)}">`;
+}
+
 async function loadCurrentUser() {
     if (!window.voidTalkApi || typeof voidTalkApi.getCurrentSession !== "function") {
         return null;
     }
 
     return voidTalkApi.getCurrentSession();
+}
+
+async function loadCurrentUserProfile() {
+    try {
+        const response = await apiFetch("/api/v1/users/me/optional-info", {
+            method: "GET"
+        });
+
+        if (response.ok) {
+            const optionalInfo = await voidTalkApi.readJsonResponse(response);
+
+            currentUserProfile = normalizeOptionalInfo(optionalInfo);
+            localStorage.setItem("voidTalkProfile", JSON.stringify(currentUserProfile));
+            return;
+        }
+    } catch (error) {
+        console.log("РќРµ РІРґР°Р»РѕСЃСЏ Р·Р°РІР°РЅС‚Р°Р¶РёС‚Рё Р°РІР°С‚Р°СЂ РєРѕСЂРёСЃС‚СѓРІР°С‡Р°:", error);
+    }
+
+    const savedProfile = localStorage.getItem("voidTalkProfile");
+
+    if (!savedProfile) {
+        return;
+    }
+
+    try {
+        const profile = JSON.parse(savedProfile);
+
+        currentUserProfile = {
+            avatar: profile.avatar || currentUserProfile.avatar,
+            avatarColorStart: profile.avatarColorStart || currentUserProfile.avatarColorStart,
+            avatarColorEnd: profile.avatarColorEnd || currentUserProfile.avatarColorEnd
+        };
+    } catch (error) {
+        console.log("РќРµ РІРґР°Р»РѕСЃСЏ РїСЂРѕС‡РёС‚Р°С‚Рё Р»РѕРєР°Р»СЊРЅРёР№ Р°РІР°С‚Р°СЂ:", error);
+    }
 }
 
 async function loadLikeCount(postId) {
@@ -96,6 +214,8 @@ async function loadMyPosts() {
             return;
         }
 
+        await loadCurrentUserProfile();
+
         const response = await apiFetch(`/api/v1/posts/user/${currentUser.id}`, {
             method: "GET"
         });
@@ -117,7 +237,7 @@ async function loadMyPosts() {
                 id: post.id,
                 text: post.post_body || "",
                 createdAt: post.created_at,
-                tags: detectTags(post.post_body),
+                tags: normalizePostTags(post),
                 likes: await loadLikeCount(post.id)
             };
         }));
@@ -165,7 +285,9 @@ function renderMyPosts() {
         card.className = "post-card my-post-card";
         card.innerHTML = `
             <div class="post-top">
-                <div class="avatar">${escapeHtml(currentUser.username.charAt(0).toUpperCase())}</div>
+                <div class="avatar" style="${getAvatarStyle(currentUserProfile)}">
+                    ${renderAvatarImage(currentUserProfile, currentUser.username)}
+                </div>
                 <div>
                     <h3>@${escapeHtml(currentUser.username)}</h3>
                     <p>${escapeHtml(formatDate(post.createdAt))}</p>

@@ -99,6 +99,56 @@ function normalizePublicProfile(user) {
     };
 }
 
+function getAvatarStyle(profile) {
+    const colorStart = profile?.avatarColorStart || "#6d28d9";
+    const colorEnd = profile?.avatarColorEnd || "#a855f7";
+
+    return `background: linear-gradient(135deg, ${escapeHtml(colorStart)}, ${escapeHtml(colorEnd)});`;
+}
+
+function renderAvatarImage(profile, altText) {
+    const avatar = profile?.avatar || getAvatarPathByIconId(1);
+
+    return `<img src="${escapeHtml(avatar)}" alt="${escapeHtml(altText)}">`;
+}
+
+function detectTags(text) {
+    const matches = String(text || "").matchAll(/#([\p{L}\p{N}_-]+)/gu);
+    const tags = [];
+
+    for (const match of matches) {
+        const tag = match[1].toLowerCase();
+
+        if (tag && !tags.includes(tag)) {
+            tags.push(tag);
+        }
+    }
+
+    return tags.length > 0 ? tags : ["random"];
+}
+
+function normalizePostTags(post) {
+    const tags = [];
+
+    detectTags(post.post_body).forEach(function(tag) {
+        if (tag !== "random" && !tags.includes(tag)) {
+            tags.push(tag);
+        }
+    });
+
+    if (Array.isArray(post.hashtags) && post.hashtags.length > 0) {
+        post.hashtags.forEach(function(hashtag) {
+            const tag = String(hashtag || "").replace(/^#/, "").toLowerCase();
+
+            if (tag && tag !== "random" && !tags.includes(tag)) {
+                tags.push(tag);
+            }
+        });
+    }
+
+    return tags.length > 0 ? tags : ["random"];
+}
+
 function cacheProfile(profile) {
     if (!profile || !profile.accountName) {
         return;
@@ -200,8 +250,8 @@ function getStatsForUsername(username) {
         return message.username.toLowerCase() === normalizedUsername;
     });
     const topics = new Set(userMessages.map(function(message) {
-        return message.tag;
-    }).filter(Boolean));
+        return Array.isArray(message.tags) ? message.tags : [message.tag];
+    }).flat().filter(Boolean));
 
     return {
         posts: userMessages.length,
@@ -261,7 +311,7 @@ const testMessages = [
 function normalizeBackendPost(post, options = {}) {
     const authorProfile = normalizePublicProfile(post.author);
     const username = authorProfile.accountName;
-    const avatarText = username.charAt(0).toUpperCase();
+    const tags = normalizePostTags(post);
 
     cacheProfile(authorProfile);
 
@@ -269,14 +319,13 @@ function normalizeBackendPost(post, options = {}) {
         id: post.id,
         userId: post.user_id,
         username: username,
-        avatar: avatarText,
+        avatar: authorProfile.avatar,
         profile: authorProfile,
         time: formatDate(post.created_at),
         text: post.post_body || "",
         likes: post.likes_count || 0,
-        tag: Array.isArray(post.hashtags) && post.hashtags.length > 0
-            ? String(post.hashtags[0]).replace("#", "")
-            : detectTag(post.post_body || ""),
+        tag: tags[0],
+        tags: tags,
         liked: Boolean(post.liked_by_current_user),
         recommendationScore: options.recommendationScore || null
     };
@@ -406,13 +455,18 @@ function renderMessages() {
     const normalizedSearch = searchQuery.trim().toLowerCase().replace("#", "");
 
     const filteredMessages = messages.filter(function(message) {
-        const matchesFilter = activeFilter === "all" || message.tag === activeFilter;
+        const messageTags = Array.isArray(message.tags) && message.tags.length > 0
+            ? message.tags
+            : [message.tag || "random"];
+        const matchesFilter = activeFilter === "all" || messageTags.includes(activeFilter);
 
         const matchesSearch =
             !normalizedSearch ||
             message.text.toLowerCase().includes(normalizedSearch) ||
             message.username.toLowerCase().includes(normalizedSearch) ||
-            message.tag.toLowerCase().includes(normalizedSearch);
+            messageTags.some(function(tag) {
+                return tag.toLowerCase().includes(normalizedSearch);
+            });
 
         return matchesFilter && matchesSearch;
     });
@@ -441,6 +495,12 @@ function renderMessages() {
         const recommendationBadge = activeMode === "recommendations"
             ? `<span class="recommendation-score">score ${escapeHtml(formatRecommendationScore(message.recommendationScore))}</span>`
             : "";
+        const messageTags = Array.isArray(message.tags) && message.tags.length > 0
+            ? message.tags
+            : [message.tag || "random"];
+        const tagsMarkup = messageTags.map(function(tag) {
+            return `<span>#${escapeHtml(tag)}</span>`;
+        }).join("");
 
         messageCard.className = "post-card message-card";
 
@@ -449,10 +509,11 @@ function renderMessages() {
                 <button
                     class="avatar profile-open-btn"
                     type="button"
+                    style="${getAvatarStyle(message.profile)}"
                     data-username="${escapeHtml(message.username)}"
                     aria-label="Відкрити профіль користувача ${escapeHtml(message.username)}"
                 >
-                    ${escapeHtml(message.avatar)}
+                    ${renderAvatarImage(message.profile, "Avatar " + message.username)}
                 </button>
 
                 <div>
@@ -467,9 +528,7 @@ function renderMessages() {
                 </div>
             </div>
 
-            <p class="post-text">
-                ${escapeHtml(message.text)}
-            </p>
+            <p class="post-text">${escapeHtml(message.text)}</p>
 
             <div class="post-bottom message-bottom">
                 <button
@@ -481,7 +540,7 @@ function renderMessages() {
                     ♥ ${message.likes}
                 </button>
 
-                <span>#${escapeHtml(message.tag)}</span>
+                ${tagsMarkup}
                 ${recommendationBadge}
             </div>
         `;
