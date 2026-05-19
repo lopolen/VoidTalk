@@ -550,12 +550,23 @@ body {
 .avatar {
     width: 46px;
     height: 46px;
+    flex: 0 0 46px;
     border-radius: 50%;
     background: linear-gradient(135deg, #5b21b6, #a855f7);
     display: flex;
     justify-content: center;
     align-items: center;
     font-weight: bold;
+    overflow: hidden;
+    box-shadow: 0 0 18px rgba(109, 40, 217, 0.28);
+}
+
+.avatar img {
+    width: 24px;
+    height: 24px;
+    filter: invert(1);
+    opacity: 0.95;
+    pointer-events: none;
 }
 
 .post-top h3 {
@@ -571,6 +582,8 @@ body {
     color: #ddd6fe;
     line-height: 1.6;
     margin-bottom: 18px;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
 }
 
 .post-bottom {
@@ -1371,6 +1384,48 @@ body {
 
 .message-card {
     cursor: default;
+    padding: 18px 20px;
+    border-radius: 18px;
+}
+
+.message-card:hover {
+    transform: translateY(-3px);
+}
+
+.message-card .post-top {
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.message-card .avatar {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+}
+
+.message-card .avatar img {
+    width: 22px;
+    height: 22px;
+}
+
+.message-card .post-top h3 {
+    font-size: 15px;
+    line-height: 1.15;
+}
+
+.message-card .post-top p {
+    font-size: 12px;
+    line-height: 1.2;
+}
+
+.message-card .post-text {
+    margin: 10px 0 14px;
+    line-height: 1.45;
+}
+
+.message-card .post-bottom {
+    gap: 16px;
+    font-size: 13px;
 }
 
 .message-bottom {
@@ -1931,16 +1986,25 @@ body {
 
 .my-post-card {
     cursor: default;
+    position: relative;
+    padding-bottom: 26px;
 }
 
 .my-post-bottom {
+    align-items: center;
+    gap: 18px;
     flex-wrap: wrap;
+    min-height: 42px;
+    padding-right: 160px;
 }
 
 .my-post-actions {
     display: flex;
     justify-content: flex-end;
-    margin-top: 18px;
+    margin-top: 0;
+    position: absolute;
+    right: 24px;
+    bottom: 24px;
 }
 
 .delete-post-btn {
@@ -1962,5 +2026,164 @@ body {
 
     .my-posts-hero .primary-btn {
         width: 100%;
+    }
+
+    .my-post-card {
+        padding-bottom: 24px;
+    }
+
+    .my-post-bottom {
+        padding-right: 0;
+    }
+
+    .my-post-actions {
+        margin-top: 16px;
+        position: static;
+    }
+}
+
+/* Final responsive fixes for the messages top panel */
+@media (max-width: 1320px) {
+    .top-interface {
+        grid-template-columns: 70px minmax(0, 1fr);
+        max-width: 100%;
+    }
+
+    .top-interface .header {
+        min-width: 0;
+    }
+
+    .mini-profile-bar {
+        grid-column: 2;
+        justify-self: end;
+        max-width: min(540px, 100%);
+    }
+}
+
+@media (max-width: 760px) {
+    .top-interface {
+        width: calc(100% - 24px);
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+        margin-top: 12px;
+    }
+
+    .logout-button {
+        width: fit-content;
+        min-width: 58px;
+        height: 36px;
+        padding: 0 12px;
+        justify-self: start;
+        font-size: 11px;
+    }
+
+    .top-interface .header {
+        width: 100%;
+        min-width: 0;
+        padding: 14px;
+        border-radius: 18px;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .top-interface .logo {
+        font-size: 24px;
+    }
+
+    .top-interface .nav {
+        width: 100%;
+        margin-left: 0;
+        justify-content: center;
+        gap: 6px 10px;
+        flex-wrap: wrap;
+    }
+
+    .top-interface .nav a {
+        padding: 6px 2px;
+        font-size: 11px;
+    }
+
+    .mini-profile-bar {
+        grid-column: 1;
+        width: 100%;
+        max-width: none;
+        height: auto;
+        min-height: 66px;
+        padding: 10px 12px;
+        border-radius: 18px;
+        gap: 10px;
+    }
+
+    .mini-profile-avatar {
+        width: 44px;
+        height: 44px;
+        flex-basis: 44px;
+    }
+
+    .mini-profile-avatar img {
+        width: 24px;
+        height: 24px;
+    }
+
+    .mini-profile-info {
+        min-width: 0;
+        max-width: none;
+        flex: 1;
+    }
+
+    .mini-profile-info strong {
+        font-size: 14px;
+    }
+
+    .mini-profile-info span {
+        font-size: 10px;
+    }
+
+    .mini-profile-stats {
+        display: none;
+    }
+
+    .messages-main {
+        width: calc(100% - 24px);
+        padding-top: 20px;
+    }
+
+    .message-create-card,
+    .messages-toolbar,
+    .messages-scroll {
+        width: 100%;
+    }
+
+    .message-create-card {
+        padding: 18px;
+        border-radius: 18px;
+    }
+
+    .message-create-card h2,
+    .messages-toolbar h2 {
+        font-size: 24px;
+    }
+
+    .messages-scroll {
+        max-height: none;
+        padding-right: 0;
+        overflow-y: visible;
+    }
+}
+
+@media (max-width: 430px) {
+    .top-interface .nav a {
+        font-size: 10px;
+    }
+
+    .feed-tab {
+        padding: 10px 8px;
+        font-size: 11px;
+    }
+
+    .filter-btn {
+        padding: 9px 12px;
+        font-size: 12px;
     }
 }
