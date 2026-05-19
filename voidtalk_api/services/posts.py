@@ -1,10 +1,19 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
+from voidtalk_api.core.antispam import (
+    POST_ANTISPAM_LIMITS,
+    PostAntiSpamLimits,
+    has_excessive_percent_encoding,
+)
 from voidtalk_api.core.hashtags import extract_hashtag_names
-from voidtalk_api.core.exceptions import PermissionDenied, ResourceNotFound
+from voidtalk_api.core.exceptions import (
+    AntiSpamRejected,
+    PermissionDenied,
+    ResourceNotFound,
+)
 from voidtalk_api.models.post import Post
 from voidtalk_api.models.user import User, UserOptionalInfo
 from voidtalk_api.repositories.hashtags import HashtagRepository
@@ -35,13 +44,20 @@ class FeedPost:
 
 
 class PostService:
-    def __init__(self, db: Session):
+    def __init__(
+        self,
+        db: Session,
+        antispam_limits: PostAntiSpamLimits = POST_ANTISPAM_LIMITS,
+    ):
         self.posts = PostRepository(db)
         self.hashtags = HashtagRepository(db)
         self.post_likes = PostLikeRepository(db)
         self.users = UserRepository(db)
+        self.antispam_limits = antispam_limits
 
     def create_post(self, post_data: PostCreate, current_user: User) -> Post:
+        self._enforce_antispam(post_data.post_body, current_user)
+
         post = self.posts.create(
             user_id=current_user.id,
             post_body=post_data.post_body,
@@ -99,3 +115,67 @@ class PostService:
             raise PermissionDenied("Only the post author can delete this post.")
 
         self.posts.delete(post)
+
+    def _enforce_antispam(self, post_body: str, current_user: User) -> None:
+        limits = self.antispam_limits
+        body_length = len(post_body)
+
+        if body_length < limits.min_length:
+            raise AntiSpamRejected(
+                f"Post must be at least {limits.min_length} characters long."
+            )
+
+        if body_length > limits.max_length:
+            raise AntiSpamRejected(
+                f"Post must be at most {limits.max_length} characters long."
+            )
+
+        if has_excessive_percent_encoding(post_body, limits):
+            raise AntiSpamRejected(
+                "Post contains too many percent-encoded characters."
+            )
+
+        now = datetime.now(timezone.utc)
+        latest_post = self.posts.get_latest_by_user_id(current_user.id)
+
+        if latest_post is not None:
+            seconds_since_latest = (
+                now - self._as_utc(latest_post.created_at)
+            ).total_seconds()
+            cooldown_seconds = int(limits.cooldown.total_seconds())
+
+            if seconds_since_latest < cooldown_seconds:
+                retry_after = max(1, cooldown_seconds - int(seconds_since_latest))
+                raise AntiSpamRejected(
+                    "Please wait before publishing another post.",
+                    status_code=429,
+                    retry_after_seconds=retry_after,
+                )
+
+        short_window_count = self.posts.count_by_user_id_since(
+            current_user.id,
+            now - limits.short_window,
+        )
+        if short_window_count >= limits.short_window_max_posts:
+            raise AntiSpamRejected(
+                "Post limit reached for the last 10 minutes.",
+                status_code=429,
+                retry_after_seconds=int(limits.cooldown.total_seconds()),
+            )
+
+        daily_count = self.posts.count_by_user_id_since(
+            current_user.id,
+            now - limits.daily_window,
+        )
+        if daily_count >= limits.daily_window_max_posts:
+            raise AntiSpamRejected(
+                "Daily post limit reached.",
+                status_code=429,
+            )
+
+    @staticmethod
+    def _as_utc(value: datetime) -> datetime:
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+
+        return value.astimezone(timezone.utc)

@@ -66,13 +66,14 @@
             <form id="messageForm" class="message-form">
                 <textarea
                     id="messageInput"
-                    maxlength="500"
+                    minlength="3"
+                    maxlength="1000"
                     placeholder="Поділіться думкою, питанням або темою з #хештегом"
                     required
                 ></textarea>
 
                 <div class="message-form-bottom">
-                    <span id="messageCounter">0 / 500</span>
+                    <span id="messageCounter">0 / 1000</span>
                     <button id="publishMessageButton" type="submit" class="primary-btn">Опублікувати</button>
                 </div>
 

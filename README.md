@@ -12,6 +12,7 @@ VoidTalk - навчальна міні-соціальна платформа з 
 - Повна стрічка постів для frontend із авторами, профілями, хештегами та станом лайка.
 - Лайки постів через backend.
 - MVP-рекомендації постів: релевантність по хештегах із штрафом за популярність.
+- Проста антиспам система для постів: довжина, cooldown і user-based ліміти.
 - CORS для роботи frontend і backend на різних dev-портах.
 
 ## Структура проєкту
@@ -29,6 +30,9 @@ scripts/setup_dev.bat  Первинне налаштування dev-серед�
 
 Для деплою на VPS з PostgreSQL дивіться окрему інструкцію:
 [docs/deployment_vps_postgresql.md](docs/deployment_vps_postgresql.md).
+
+Антиспам правила для постів описані тут:
+[docs/antispam.md](docs/antispam.md).
 
 ### Linux / macOS
 

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from voidtalk_api.api.deps import get_current_user
 from voidtalk_api.core.database import get_db
 from voidtalk_api.core.exceptions import (
+    AntiSpamRejected,
     PermissionDenied,
     ResourceAlreadyExists,
     ResourceNotFound,
@@ -31,7 +32,18 @@ def create_post(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return PostService(db).create_post(post_data, current_user)
+    try:
+        return PostService(db).create_post(post_data, current_user)
+    except AntiSpamRejected as exc:
+        headers = None
+        if exc.retry_after_seconds is not None:
+            headers = {"Retry-After": str(exc.retry_after_seconds)}
+
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail=str(exc),
+            headers=headers,
+        ) from exc
 
 
 @router.get("/recommendations", response_model=list[RecommendedPostRead])
