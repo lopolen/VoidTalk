@@ -107,6 +107,11 @@
 
             link.style.display = "";
 
+            if (isAuth && link.dataset.guestOnly === "true") {
+                link.style.display = "none";
+                return;
+            }
+
             if (!isAuth && protectedPages.includes(targetPage)) {
                 link.style.display = "none";
             }

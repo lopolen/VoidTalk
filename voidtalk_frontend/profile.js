@@ -61,6 +61,12 @@ const profileStatus = document.getElementById("profileStatus");
 
 const avatarButtons = document.querySelectorAll(".avatar-option");
 const resetProfileButton = document.getElementById("resetProfile");
+const profileLogoutButton = document.getElementById("profileLogoutButton");
+const profilePreviewCard = document.querySelector(".profile-preview-card");
+
+if (profilePreviewCard && profileLogoutButton) {
+    profilePreviewCard.appendChild(profileLogoutButton);
+}
 
 /* Avatar mapping for backend icon_id */
 
@@ -572,6 +578,37 @@ if (resetProfileButton) {
         } finally {
             setProfileFormSubmitting(false);
         }
+    });
+}
+
+/* Logout */
+
+if (profileLogoutButton) {
+    profileLogoutButton.addEventListener("click", async function() {
+        profileLogoutButton.disabled = true;
+        profileLogoutButton.textContent = "Виходимо...";
+
+        try {
+            if (typeof apiFetch === "function") {
+                await apiFetch("/api/v1/users/logout", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                });
+            }
+        } catch (error) {
+            console.log("Backend logout не спрацював:", error);
+        }
+
+        localStorage.removeItem("voidTalkUser");
+        localStorage.removeItem("voidTalkProfileNeedsSetup");
+        localStorage.removeItem("voidTalkMessages");
+        localStorage.removeItem("voidTalkJustLoggedIn");
+
+        sessionStorage.clear();
+
+        window.location.href = "index.html";
     });
 }
 
