@@ -27,6 +27,9 @@ scripts/setup_dev.bat  Первинне налаштування dev-серед�
 
 ## Швидкий старт
 
+Для деплою на VPS з PostgreSQL дивіться окрему інструкцію:
+[docs/deployment_vps_postgresql.md](docs/deployment_vps_postgresql.md).
+
 ### Linux / macOS
 
 Запустіть setup-скрипт із кореня репозиторію:
