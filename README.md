@@ -34,6 +34,9 @@ scripts/setup_dev.bat  Первинне налаштування dev-серед�
 Антиспам правила для постів описані тут:
 [docs/antispam.md](docs/antispam.md).
 
+Система рекомендацій постів описана тут:
+[docs/recommendations.md](docs/recommendations.md).
+
 ### Linux / macOS
 
 Запустіть setup-скрипт із кореня репозиторію:
