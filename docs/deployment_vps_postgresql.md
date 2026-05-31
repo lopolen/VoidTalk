@@ -1,30 +1,30 @@
-# Деплой VoidTalk на VPS з PostgreSQL
+# Deploying VoidTalk to a VPS with PostgreSQL
 
-Ця інструкція описує production-like деплой на Ubuntu VPS:
+This guide describes a production-like deployment on an Ubuntu VPS:
 
-- FastAPI backend запускається через `systemd` і слухає `127.0.0.1:8000`.
-- PostgreSQL зберігає дані застосунку.
-- Nginx віддає статичний frontend і прокидує `/api/` на backend.
-- Alembic застосовує міграції бази даних.
+- The FastAPI backend runs through `systemd` and listens on `127.0.0.1:8000`.
+- PostgreSQL stores application data.
+- Nginx serves the static frontend and proxies `/api/` to the backend.
+- Alembic applies database migrations.
 
-У прикладах використовується домен `example.com`, користувач Linux `voidtalk` і директорія `/opt/voidtalk`. Замініть їх на свої значення.
+The examples use the domain `example.com`, the Linux user `voidtalk`, and the directory `/opt/voidtalk`. Replace them with your own values.
 
-## 1. Підготовка сервера
+## 1. Prepare the Server
 
-Підключіться до VPS:
+Connect to the VPS:
 
 ```bash
 ssh root@YOUR_SERVER_IP
 ```
 
-Оновіть пакети й встановіть потрібні залежності:
+Update packages and install the required dependencies:
 
 ```bash
 apt update
 apt install -y python3 python3-venv python3-pip postgresql postgresql-contrib nginx git
 ```
 
-Створіть окремого користувача для застосунку:
+Create a dedicated application user:
 
 ```bash
 adduser --system --group --home /opt/voidtalk voidtalk
@@ -34,13 +34,13 @@ chown -R voidtalk:voidtalk /opt/voidtalk
 
 ## 2. PostgreSQL
 
-Створіть базу даних і користувача PostgreSQL:
+Create a PostgreSQL database and user:
 
 ```bash
 sudo -u postgres psql
 ```
 
-У консолі `psql` виконайте:
+In the `psql` console, run:
 
 ```sql
 CREATE DATABASE voidtalk;
@@ -51,49 +51,49 @@ GRANT ALL ON SCHEMA public TO voidtalk;
 \q
 ```
 
-Production `DATABASE_URL` для цього прикладу:
+The production `DATABASE_URL` for this example is:
 
 ```text
 postgresql+psycopg2://voidtalk:CHANGE_ME_STRONG_PASSWORD@127.0.0.1:5432/voidtalk
 ```
 
-Якщо пароль містить спецсимволи на кшталт `@`, `/`, `:` або `#`, закодуйте його для URL.
+If the password contains special characters such as `@`, `/`, `:`, or `#`, URL-encode it.
 
-## 3. Код проєкту
+## 3. Project Code
 
-Склонуйте репозиторій у `/opt/voidtalk/app`:
+Clone the repository into `/opt/voidtalk/app`:
 
 ```bash
 sudo -u voidtalk git clone YOUR_REPOSITORY_URL /opt/voidtalk/app
 cd /opt/voidtalk/app
 ```
 
-Якщо код уже завантажений іншим способом, важливо, щоб власником файлів був користувач `voidtalk`:
+If the code was uploaded another way, make sure `voidtalk` owns the files:
 
 ```bash
 chown -R voidtalk:voidtalk /opt/voidtalk
 ```
 
-## 4. Налаштування застосунку
+## 4. Configure the Application
 
-Запустіть helper-скрипт з production `DATABASE_URL`:
+Run the helper script with the production `DATABASE_URL`:
 
 ```bash
 cd /opt/voidtalk/app
 sudo -u voidtalk env DATABASE_URL='postgresql+psycopg2://voidtalk:CHANGE_ME_STRONG_PASSWORD@127.0.0.1:5432/voidtalk' ./scripts/setup_vps.sh
 ```
 
-Скрипт зробить такі речі:
+The script will:
 
-- створить `.venv`;
-- встановить залежності з `requirements.txt`;
-- запише `voidtalk_api/cfg/database_url.env`;
-- створить `voidtalk_api/cfg/recommendations.env`, якщо його ще немає;
-- налаштує `voidtalk_frontend/config.js`;
-- виконає `alembic upgrade head`;
-- перевірить, що FastAPI app імпортується.
+- create `.venv`;
+- install dependencies from `requirements.txt`;
+- write `voidtalk_api/cfg/database_url.env`;
+- create `voidtalk_api/cfg/recommendations.env` if it does not already exist;
+- configure `voidtalk_frontend/config.js`;
+- run `alembic upgrade head`;
+- verify that the FastAPI app can be imported.
 
-За замовчуванням frontend config використовує:
+By default, the frontend config uses:
 
 ```js
 window.VOIDTALK_CONFIG = {
@@ -101,15 +101,15 @@ window.VOIDTALK_CONFIG = {
 };
 ```
 
-Це підходить для Nginx-конфігурації нижче, де `/api/` прокидується на backend на тому самому домені. Якщо API має бути на окремому домені, передайте `API_BASE_URL`:
+This works with the Nginx configuration below, where `/api/` is proxied to the backend on the same domain. If the API should live on a separate domain, pass `API_BASE_URL`:
 
 ```bash
 sudo -u voidtalk env DATABASE_URL='postgresql+psycopg2://voidtalk:CHANGE_ME_STRONG_PASSWORD@127.0.0.1:5432/voidtalk' API_BASE_URL='https://api.example.com' ./scripts/setup_vps.sh
 ```
 
-## 5. systemd service для backend
+## 5. Backend systemd Service
 
-Створіть файл `/etc/systemd/system/voidtalk.service`:
+Create `/etc/systemd/system/voidtalk.service`:
 
 ```ini
 [Unit]
@@ -129,7 +129,7 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-Увімкніть і запустіть сервіс:
+Enable and start the service:
 
 ```bash
 systemctl daemon-reload
@@ -137,7 +137,7 @@ systemctl enable --now voidtalk
 systemctl status voidtalk
 ```
 
-Перевірити логи:
+Check logs:
 
 ```bash
 journalctl -u voidtalk -f
@@ -145,7 +145,7 @@ journalctl -u voidtalk -f
 
 ## 6. Nginx
 
-Створіть файл `/etc/nginx/sites-available/voidtalk`:
+Create `/etc/nginx/sites-available/voidtalk`:
 
 ```nginx
 server {
@@ -182,7 +182,7 @@ server {
 }
 ```
 
-Увімкніть сайт і перевірте конфігурацію:
+Enable the site and check the configuration:
 
 ```bash
 ln -s /etc/nginx/sites-available/voidtalk /etc/nginx/sites-enabled/voidtalk
@@ -190,7 +190,7 @@ nginx -t
 systemctl reload nginx
 ```
 
-Якщо дефолтний сайт Nginx заважає, вимкніть його:
+If the default Nginx site gets in the way, disable it:
 
 ```bash
 rm -f /etc/nginx/sites-enabled/default
@@ -200,22 +200,22 @@ systemctl reload nginx
 
 ## 7. HTTPS
 
-Коли DNS домену вже вказує на VPS, встановіть Certbot і випустіть сертифікат:
+When the domain DNS already points to the VPS, install Certbot and issue a certificate:
 
 ```bash
 apt install -y certbot python3-certbot-nginx
 certbot --nginx -d example.com -d www.example.com
 ```
 
-Перевірте автопоновлення:
+Check automatic renewal:
 
 ```bash
 certbot renew --dry-run
 ```
 
-## 8. Оновлення після нового релізу
+## 8. Updating After a New Release
 
-Типовий порядок оновлення:
+Typical update flow:
 
 ```bash
 cd /opt/voidtalk/app
@@ -225,7 +225,7 @@ systemctl restart voidtalk
 systemctl reload nginx
 ```
 
-Після першого запуску `DATABASE_URL` уже записаний у `voidtalk_api/cfg/database_url.env`, тому повторний запуск `setup_vps.sh` не потребує пароля в команді. Якщо треба виконати тільки міграції:
+After the first run, `DATABASE_URL` is already written to `voidtalk_api/cfg/database_url.env`, so repeated `setup_vps.sh` runs do not need the password in the command. To run only migrations:
 
 ```bash
 cd /opt/voidtalk/app
@@ -233,40 +233,40 @@ sudo -u voidtalk .venv/bin/python -m alembic upgrade head
 systemctl restart voidtalk
 ```
 
-## 9. Швидка перевірка
+## 9. Quick Check
 
-Backend напряму на сервері:
+Backend directly on the server:
 
 ```bash
 curl http://127.0.0.1:8000/docs
 ```
 
-Через Nginx:
+Through Nginx:
 
 ```bash
 curl -I http://example.com/
 curl -I http://example.com/docs
 ```
 
-У браузері відкрийте:
+Open in a browser:
 
 ```text
 https://example.com
 ```
 
-Після реєстрації або входу backend має встановити cookie `voidtalk_session`. Якщо frontend відкривається, але login не працює, перевірте:
+After registration or login, the backend should set the `voidtalk_session` cookie. If the frontend opens but login does not work, check:
 
 - `systemctl status voidtalk`;
 - `journalctl -u voidtalk -n 100`;
-- чи правильно записаний `DATABASE_URL` у `voidtalk_api/cfg/database_url.env`;
-- чи `voidtalk_frontend/config.js` вказує на той самий домен або коректний API-домен.
+- whether `DATABASE_URL` is written correctly in `voidtalk_api/cfg/database_url.env`;
+- whether `voidtalk_frontend/config.js` points to the same domain or the correct API domain.
 
-## 10. Нотатки
+## 10. Notes
 
-Не запускайте Uvicorn з `--reload` на VPS. Цей режим призначений для розробки.
+Do not run Uvicorn with `--reload` on a VPS. That mode is intended for development.
 
-Файл `voidtalk_api/cfg/database_url.env` містить пароль до PostgreSQL, тому helper-скрипт виставляє на нього права `600`.
+The `voidtalk_api/cfg/database_url.env` file contains the PostgreSQL password, so the helper script sets its permissions to `600`.
 
-Після запуску на VPS не комітьте змінений `voidtalk_api/cfg/database_url.env` або `voidtalk_frontend/config.js`, бо там можуть бути production-значення.
+After running on a VPS, do not commit modified `voidtalk_api/cfg/database_url.env` or `voidtalk_frontend/config.js`, because they may contain production values.
 
-Якщо frontend і backend працюють на одному домені через Nginx `/api/`, CORS не заважає, бо браузер бачить запити як same-origin. Якщо винести API на окремий домен, треба буде дозволити цей origin у FastAPI CORS middleware.
+If the frontend and backend run on the same domain through Nginx `/api/`, CORS does not interfere because the browser treats requests as same-origin. If the API is moved to a separate domain, that origin must be allowed in FastAPI CORS middleware.

@@ -1,45 +1,45 @@
 # VoidTalk
 
-VoidTalk - навчальна міні-соціальна платформа з FastAPI backend, SQLAlchemy/Alembic базою даних і статичним HTML/CSS/JS frontend.
+VoidTalk is a learning-focused mini social platform with a FastAPI backend, a SQLAlchemy/Alembic database layer, and a static HTML/CSS/JS frontend.
 
-## Що вже є
+## Current Features
 
-- Реєстрація користувача.
-- Вхід через cookie-сесію `voidtalk_session`.
-- Перевірка поточного користувача через `GET /api/v1/users/me`.
-- Пошук користувача за username.
-- Створення постів авторизованим користувачем.
-- Повна стрічка постів для frontend із авторами, профілями, хештегами та станом лайка.
-- Лайки постів через backend.
-- MVP-рекомендації постів: релевантність по хештегах із штрафом за популярність.
-- Проста антиспам система для постів: довжина, cooldown і user-based ліміти.
-- CORS для роботи frontend і backend на різних dev-портах.
+- User registration.
+- Login through the `voidtalk_session` cookie session.
+- Current-user checks through `GET /api/v1/users/me`.
+- User search by username.
+- Post creation by authenticated users.
+- Full post feed for the frontend with authors, profiles, hashtags, and like state.
+- Backend-managed post likes.
+- MVP post recommendations: hashtag relevance with a popularity penalty.
+- Simple post anti-spam system: length checks, cooldowns, and user-based limits.
+- CORS setup for running the frontend and backend on different development ports.
 
-## Структура проєкту
+## Project Structure
 
 ```text
 voidtalk_api/          FastAPI backend
-voidtalk_frontend/     Статичний frontend
-alembic/               Міграції бази даних
-docs/                  Додаткова документація
-scripts/setup_dev.sh   Первинне налаштування dev-середовища
-scripts/setup_dev.bat  Первинне налаштування dev-середовища на Windows
+voidtalk_frontend/     Static frontend
+alembic/               Database migrations
+docs/                  Additional documentation
+scripts/setup_dev.sh   Initial development environment setup
+scripts/setup_dev.bat  Initial development environment setup on Windows
 ```
 
-## Швидкий старт
+## Quick Start
 
-Для деплою на VPS з PostgreSQL дивіться окрему інструкцію:
+For VPS deployment with PostgreSQL, see:
 [docs/deployment_vps_postgresql.md](docs/deployment_vps_postgresql.md).
 
-Антиспам правила для постів описані тут:
+Post anti-spam rules are described here:
 [docs/antispam.md](docs/antispam.md).
 
-Система рекомендацій постів описана тут:
+The post recommendation system is described here:
 [docs/recommendations.md](docs/recommendations.md).
 
 ### Linux / macOS
 
-Запустіть setup-скрипт із кореня репозиторію:
+Run the setup script from the repository root:
 
 ```bash
 ./scripts/setup_dev.sh
@@ -47,30 +47,30 @@ scripts/setup_dev.bat  Первинне налаштування dev-серед�
 
 ### Windows
 
-Запустіть setup-скрипт із кореня репозиторію у `cmd.exe`:
+Run the setup script from the repository root in `cmd.exe`:
 
 ```bat
 scripts\setup_dev.bat
 ```
 
-Якщо Python доступний не як `python`, передайте іншу команду через `PYTHON_BIN`. Наприклад:
+If Python is not available as `python`, pass a different command through `PYTHON_BIN`. For example:
 
 ```bat
 set PYTHON_BIN=py -3
 scripts\setup_dev.bat
 ```
 
-Скрипт:
+The script will:
 
-- створить `.venv`, якщо його ще немає;
-- встановить Python-пакети з `requirements.txt`;
-- створить `voidtalk_api/cfg/database_url.env`, якщо файл відсутній;
-- створить `voidtalk_api/cfg/recommendations.env`, якщо файл відсутній;
-- створить `voidtalk_frontend/config.js` із прикладу, якщо файл відсутній;
-- застосує міграції Alembic;
-- перевірить імпорт FastAPI app.
+- create `.venv` if it does not already exist;
+- install Python packages from `requirements.txt`;
+- create `voidtalk_api/cfg/database_url.env` if the file is missing;
+- create `voidtalk_api/cfg/recommendations.env` if the file is missing;
+- create `voidtalk_frontend/config.js` from the example if the file is missing;
+- apply Alembic migrations;
+- verify that the FastAPI app can be imported.
 
-## Запуск backend
+## Running the Backend
 
 Linux / macOS:
 
@@ -86,47 +86,47 @@ Windows `cmd.exe`:
 uvicorn voidtalk_api.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-API документація FastAPI буде доступна тут:
+FastAPI API documentation will be available at:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-## Запуск frontend
+## Running the Frontend
 
-Frontend є статичним. Його можна відкрити через Live Server або будь-який простий статичний сервер.
+The frontend is static. You can open it through Live Server or any simple static file server.
 
-Приклад:
+Example:
 
 ```bash
 cd voidtalk_frontend
 python3 -m http.server 5173
 ```
 
-На Windows:
+On Windows:
 
 ```bat
 cd voidtalk_frontend
 python -m http.server 5173
 ```
 
-Після цього відкрийте:
+Then open:
 
 ```text
 http://127.0.0.1:5173
 ```
 
-Важливо: для cookie краще використовувати один і той самий host для frontend і backend. Тобто `127.0.0.1` + `127.0.0.1`, або `localhost` + `localhost`. Не змішуйте `localhost` і `127.0.0.1`.
+Important: cookies work best when the frontend and backend use the same host. Use `127.0.0.1` with `127.0.0.1`, or `localhost` with `localhost`. Do not mix `localhost` and `127.0.0.1`.
 
-## Frontend API config
+## Frontend API Config
 
-Frontend читає API URL із файлу:
+The frontend reads the API URL from:
 
 ```text
 voidtalk_frontend/config.js
 ```
 
-Приклад:
+Example:
 
 ```js
 window.VOIDTALK_CONFIG = {
@@ -134,7 +134,7 @@ window.VOIDTALK_CONFIG = {
 };
 ```
 
-Якщо потрібно змінити backend URL, змініть `API_BASE_URL`. Наприклад:
+To change the backend URL, update `API_BASE_URL`. For example:
 
 ```js
 window.VOIDTALK_CONFIG = {
@@ -142,36 +142,36 @@ window.VOIDTALK_CONFIG = {
 };
 ```
 
-Усі frontend-запити мають іти через `apiFetch(...)` з [api.js](voidtalk_frontend/api.js). Цей helper:
+All frontend requests should go through `apiFetch(...)` from [api.js](voidtalk_frontend/api.js). This helper:
 
-- додає `API_BASE_URL`;
-- автоматично передає cookie через `credentials: "include"`;
-- коректно читає JSON;
-- показує зрозумілі помилки, якщо відповідь не JSON.
+- prefixes requests with `API_BASE_URL`;
+- automatically sends cookies through `credentials: "include"`;
+- reads JSON correctly;
+- shows understandable errors when the response is not JSON.
 
-## Авторизація і сесія
+## Authorization and Sessions
 
-Backend встановлює cookie `voidtalk_session` після успішного login:
+The backend sets the `voidtalk_session` cookie after a successful login:
 
 ```http
 POST /api/v1/users/login
 ```
 
-Frontend не повинен вважати `localStorage` джерелом правди для авторизації. Для перевірки поточної сесії використовується:
+The frontend must not treat `localStorage` as the source of truth for authorization. The current session is checked with:
 
 ```http
 GET /api/v1/users/me
 ```
 
-У frontend це викликається через:
+In the frontend, call:
 
 ```js
 const user = await voidTalkApi.getCurrentSession();
 ```
 
-Якщо сесія невалідна або cookie немає, backend повертає `401`, а frontend очищає `voidTalkUser` із `localStorage`.
+If the session is invalid or the cookie is missing, the backend returns `401`, and the frontend clears `voidTalkUser` from `localStorage`.
 
-## Основні API endpoints
+## Main API Endpoints
 
 ```text
 POST   /api/v1/users/register
@@ -190,19 +190,17 @@ DELETE /api/v1/posts/{post_id}/likes
 DELETE /api/v1/posts/{post_id}
 ```
 
-## Frontend feed
+## Frontend Feed
 
-Основна сторінка повідомлень використовує:
+The main messages page uses:
 
 ```http
 GET /api/v1/posts/feed?limit=30
 ```
 
-Цей endpoint повертає пости разом з автором, optional profile info,
-хештегами, кількістю лайків і `liked_by_current_user`, щоб frontend не
-підставляв `user_ID` та не тримав лайки тільки локально.
+This endpoint returns posts with the author, optional profile info, hashtags, like count, and `liked_by_current_user`, so the frontend does not need to substitute `user_ID` or keep likes only in local state.
 
-## Рекомендації постів
+## Post Recommendations
 
 Endpoint:
 
@@ -210,58 +208,58 @@ Endpoint:
 GET /api/v1/posts/recommendations?limit=20
 ```
 
-Рекомендації доступні авторизованому користувачу. MVP-алгоритм:
+Recommendations are available to authenticated users. The MVP algorithm:
 
-- витягує хештеги з нових постів і зберігає їх у `hashtags` / `posts_hashtags`;
-- будує інтерес користувача з хештегів у лайкнутих і власних постах;
-- піднімає релевантні пости, але зменшує score для постів із більшою кількістю лайків;
-- додає невеликий exploration-score, щоб нові теми теж могли з'являтися у стрічці.
+- extracts hashtags from new posts and stores them in `hashtags` / `posts_hashtags`;
+- builds the user's interests from hashtags in liked and authored posts;
+- promotes relevant posts while lowering the score for posts with more likes;
+- adds a small exploration score so new topics can still appear in the feed.
 
-Налаштування лежать у:
+Configuration is stored in:
 
 ```text
 voidtalk_api/cfg/recommendations.env
 ```
 
-Основні змінні: `RECOMMENDATIONS_LIKED_HASHTAG_WEIGHT`,
+Main variables: `RECOMMENDATIONS_LIKED_HASHTAG_WEIGHT`,
 `RECOMMENDATIONS_AUTHORED_HASHTAG_WEIGHT`,
 `RECOMMENDATIONS_POPULARITY_PENALTY_POWER`,
 `RECOMMENDATIONS_FRESHNESS_HALF_LIFE_DAYS`,
 `RECOMMENDATIONS_EXPLORATION_SCORE`.
 
-## Типові проблеми
+## Common Issues
 
-### POST іде на порт frontend
+### POST Goes to the Frontend Port
 
-Помилка:
+Error:
 
 ```text
 POST http://127.0.0.1:5173/api/v1/users/register
 501 Unsupported method ('POST')
 ```
 
-Причина: запит іде на frontend-сервер, а не на FastAPI.
+Cause: the request is going to the frontend server instead of FastAPI.
 
-Рішення: перевірте `voidtalk_frontend/config.js`, backend має бути на `http://127.0.0.1:8000`, а frontend-запити мають використовувати `apiFetch(...)`.
+Fix: check `voidtalk_frontend/config.js`. The backend should be set to `http://127.0.0.1:8000`, and frontend requests should use `apiFetch(...)`.
 
-### JSON.parse падає на HTML/plain text
+### JSON.parse Fails on HTML or Plain Text
 
-Причина: сервер повернув не JSON, часто це відповідь frontend-сервера або сторінка помилки.
+Cause: the server returned a non-JSON response, often from the frontend server or an error page.
 
-Рішення: використовуйте `voidTalkApi.readJsonResponse(response)` і `voidTalkApi.getApiErrorMessage(response, fallback)`.
+Fix: use `voidTalkApi.readJsonResponse(response)` and `voidTalkApi.getApiErrorMessage(response, fallback)`.
 
-### Cookie не відправляється
+### Cookie Is Not Sent
 
-Перевірте:
+Check that:
 
-- backend має `CORSMiddleware` з `allow_credentials=True`;
-- frontend використовує `apiFetch(...)`;
-- frontend і backend відкриті на одному host (`127.0.0.1` або `localhost`);
-- browser DevTools показує cookie `voidtalk_session`.
+- the backend uses `CORSMiddleware` with `allow_credentials=True`;
+- the frontend uses `apiFetch(...)`;
+- the frontend and backend are opened on the same host (`127.0.0.1` or `localhost`);
+- browser DevTools shows the `voidtalk_session` cookie.
 
-## Міграції
+## Migrations
 
-Застосувати міграції:
+Apply migrations:
 
 Linux / macOS:
 
@@ -277,23 +275,23 @@ Windows `cmd.exe`:
 alembic upgrade head
 ```
 
-Створити нову міграцію після змін у моделях:
+Create a new migration after model changes:
 
 ```bash
 alembic revision --autogenerate -m "describe change"
 ```
 
-## Рекомендований dev workflow
+## Recommended Development Workflow
 
-1. Запустіть `./scripts/setup_dev.sh` на Linux/macOS або `scripts\setup_dev.bat` на Windows.
-2. Запустіть backend через `uvicorn`.
-3. Запустіть frontend через Live Server, `python3 -m http.server 5173` на Linux/macOS або `python -m http.server 5173` на Windows.
-4. Зареєструйте користувача.
-5. Перевірте в DevTools, що після login є cookie `voidtalk_session`.
-6. Відкрийте профіль або створіть пост: frontend перевірить сесію через `/api/v1/users/me`.
+1. Run `./scripts/setup_dev.sh` on Linux/macOS or `scripts\setup_dev.bat` on Windows.
+2. Start the backend with `uvicorn`.
+3. Start the frontend through Live Server, `python3 -m http.server 5173` on Linux/macOS, or `python -m http.server 5173` on Windows.
+4. Register a user.
+5. Check in DevTools that the `voidtalk_session` cookie exists after login.
+6. Open a profile or create a post: the frontend will verify the session through `/api/v1/users/me`.
 
-## Наступні покращення
+## Next Improvements
 
-- Додати пагінацію або cursor-based завантаження для `/api/v1/posts/feed`.
-- Додати автоматичні інтеграційні тести: register -> login -> me -> create post.
-- Перенести frontend на Vite і налаштувати dev proxy `/api -> http://127.0.0.1:8000`.
+- Add pagination or cursor-based loading for `/api/v1/posts/feed`.
+- Add automated integration tests: register -> login -> me -> create post.
+- Move the frontend to Vite and configure a dev proxy from `/api` to `http://127.0.0.1:8000`.
