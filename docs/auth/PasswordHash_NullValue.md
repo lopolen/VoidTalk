@@ -1,9 +1,11 @@
-Значення null в users.password_hash ваказує на скомпрометований стан паролю
-Користувач з цим значенням має бути переведений в reset flow негайно. Всі сесії користувача мають стати не валідними.
+A `null` value in `users.password_hash` indicates a compromised password state.
 
-Це усвідомлене рішення спрямоване на чітке визначення чи є хеш придатним до використання.
+A user with this value must be moved into the reset flow immediately. All of the user's sessions should be invalidated.
 
-Можна використовувати null значення в users.password_hash якщо:
-    - Користувач забув пароль і хоче створити новий
-    - Пошкоджений хеш
-    - Підозри на утік паролю користувача
+This is an intentional design decision that makes it explicit whether a password hash is valid for use.
+
+Use `null` in `users.password_hash` when:
+
+- the user forgot their password and wants to create a new one;
+- the stored hash is damaged;
+- there is suspicion that the user's password has leaked.

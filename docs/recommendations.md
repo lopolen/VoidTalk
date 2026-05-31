@@ -1,9 +1,6 @@
-# Система рекомендацій постів
+# Post Recommendation System
 
-VoidTalk має MVP-систему рекомендацій, яка ранжує пости для авторизованого
-користувача за його інтересом до хештегів, свіжістю поста і штрафом за
-популярність. Рекомендації рахуються на льоту під час запиту до API; окрема
-таблиця з готовими результатами не використовується.
+VoidTalk has an MVP recommendation system that ranks posts for an authenticated user based on hashtag interest, post freshness, and a popularity penalty. Recommendations are calculated on demand during the API request; there is no separate table with precomputed results.
 
 ## API
 
@@ -13,18 +10,16 @@ Endpoint:
 GET /api/v1/posts/recommendations?limit=20
 ```
 
-Запит вимагає валідну cookie-сесію `voidtalk_session`. Якщо `limit` не
-передано, використовується `RECOMMENDATIONS_DEFAULT_LIMIT`. Значення завжди
-обмежується діапазоном `1..RECOMMENDATIONS_MAX_LIMIT`.
+The request requires a valid `voidtalk_session` cookie. If `limit` is not provided, `RECOMMENDATIONS_DEFAULT_LIMIT` is used. The value is always constrained to the `1..RECOMMENDATIONS_MAX_LIMIT` range.
 
-Відповідь є списком `RecommendedPostRead`:
+The response is a list of `RecommendedPostRead` objects:
 
 ```json
 [
   {
     "id": 42,
     "user_id": 7,
-    "post_body": "Люблю FastAPI #python #backend",
+    "post_body": "I love FastAPI #python #backend",
     "created_at": "2026-05-18T12:00:00Z",
     "likes_count": 3,
     "hashtags": ["backend", "python"],
@@ -39,43 +34,39 @@ GET /api/v1/posts/recommendations?limit=20
 ]
 ```
 
-Поле `recommendation_score` повертається для прозорості й debugging. Frontend
-показує його тільки у режимі рекомендацій.
+The `recommendation_score` field is returned for transparency and debugging. The frontend shows it only in recommendation mode.
 
-## Дані
+## Data
 
-Хештеги витягуються під час створення поста в `PostService.create_post`.
-Правило пошуку визначене у `voidtalk_api/core/hashtags.py`:
+Hashtags are extracted when a post is created in `PostService.create_post`. The matching rules are defined in `voidtalk_api/core/hashtags.py`:
 
-- хештег починається з `#`;
-- довжина назви від 1 до 64 символів;
-- підтримуються Unicode word-символи;
-- назва приводиться до lowercase;
-- дублікати в межах одного поста відкидаються;
-- крайні `_` обрізаються.
+- a hashtag starts with `#`;
+- the tag name length is from 1 to 64 characters;
+- Unicode word characters are supported;
+- the name is converted to lowercase;
+- duplicates within one post are discarded;
+- leading and trailing `_` characters are trimmed.
 
-Після створення поста `HashtagRepository.attach_to_post` створює відсутні
-рядки в `hashtags` і зв'язує пост із тегами через `posts_hashtags`.
+After a post is created, `HashtagRepository.attach_to_post` creates missing rows in `hashtags` and links the post to tags through `posts_hashtags`.
 
-Основні таблиці:
+Main tables:
 
-- `posts` - пости користувачів.
-- `posts_users_likes` - лайки, які також є сигналом інтересів.
-- `hashtags` - унікальні назви хештегів.
-- `posts_hashtags` - many-to-many зв'язок постів і хештегів.
+- `posts` - user posts.
+- `posts_users_likes` - likes, which also act as interest signals.
+- `hashtags` - unique hashtag names.
+- `posts_hashtags` - many-to-many relation between posts and hashtags.
 
-Схему для хештегів додає Alembic-міграція
-`a7d2f4c9b8e1_add_hashtags_for_recommendations.py`.
+The hashtag schema is added by the Alembic migration `a7d2f4c9b8e1_add_hashtags_for_recommendations.py`.
 
-## Побудова інтересів користувача
+## Building User Interests
 
-`PostRecommendationService._build_hashtag_affinities` збирає словник:
+`PostRecommendationService._build_hashtag_affinities` builds a dictionary:
 
 ```text
 hashtag -> affinity
 ```
 
-Affinity складається з двох сигналів:
+Affinity is made from two signals:
 
 ```text
 affinity =
@@ -83,37 +74,33 @@ affinity =
   + authored_hashtag_count * RECOMMENDATIONS_AUTHORED_HASHTAG_WEIGHT
 ```
 
-Де:
+Where:
 
-- `liked_hashtag_count` - скільки разів цей хештег трапляється в постах,
-  які користувач лайкнув.
-- `authored_hashtag_count` - скільки разів цей хештег трапляється у власних
-  постах користувача.
+- `liked_hashtag_count` is how many times the hashtag appears in posts liked by the user.
+- `authored_hashtag_count` is how many times the hashtag appears in the user's own posts.
 
-За замовчуванням лайки мають більшу вагу (`3.0`), ніж власні пости (`1.5`),
-бо лайк є прямішим сигналом інтересу до чужого контенту.
+By default, likes have a larger weight (`3.0`) than authored posts (`1.5`) because a like is a more direct signal of interest in someone else's content.
 
-## Вибір кандидатів
+## Candidate Selection
 
-`PostRecommendationRepository.list_candidates` бере пул найновіших постів:
+`PostRecommendationRepository.list_candidates` takes a pool of recent posts:
 
 ```text
 candidate_pool_size = safe_limit * RECOMMENDATIONS_CANDIDATE_POOL_MULTIPLIER
 ```
 
-Для кандидатів діють правила:
+Candidate rules:
 
-- не показувати пости, які користувач уже лайкнув;
-- не показувати власні пости, якщо `RECOMMENDATIONS_EXCLUDE_OWN_POSTS=true`;
-- сортувати початковий пул за `created_at desc, id desc`;
-- підтягувати автора, optional profile info, кількість лайків і хештеги.
+- do not show posts already liked by the user;
+- do not show the user's own posts when `RECOMMENDATIONS_EXCLUDE_OWN_POSTS=true`;
+- sort the initial pool by `created_at desc, id desc`;
+- load the author, optional profile info, like count, and hashtags.
 
-Після цього сервіс рахує score для кожного кандидата і повертає найкращі
-`safe_limit` постів.
+The service then calculates a score for each candidate and returns the best `safe_limit` posts.
 
-## Формула ранжування
+## Ranking Formula
 
-Фінальний score:
+Final score:
 
 ```text
 recommendation_score = relevance_score * popularity_score * freshness_score
@@ -121,22 +108,20 @@ recommendation_score = relevance_score * popularity_score * freshness_score
 
 ### Relevance
 
-Якщо в кандидата немає хештегів:
+If a candidate has no hashtags:
 
 ```text
 relevance_score = RECOMMENDATIONS_NO_HASHTAG_SCORE
 ```
 
-Якщо хештеги є:
+If it has hashtags:
 
 ```text
 raw_relevance = average(affinity[tag] for tag in candidate_hashtags)
 relevance_score = max(raw_relevance, RECOMMENDATIONS_EXPLORATION_SCORE)
 ```
 
-`RECOMMENDATIONS_EXPLORATION_SCORE` не дає постам з новими для користувача
-темами отримувати нульовий score. Це дозволяє іноді піднімати нові інтереси,
-особливо коли пост свіжий і не дуже популярний.
+`RECOMMENDATIONS_EXPLORATION_SCORE` prevents posts with topics new to the user from receiving a zero score. This lets new interests occasionally surface, especially when the post is fresh and not very popular.
 
 ### Popularity
 
@@ -144,8 +129,7 @@ relevance_score = max(raw_relevance, RECOMMENDATIONS_EXPLORATION_SCORE)
 popularity_score = 1 / ((likes_count + 1) ** RECOMMENDATIONS_POPULARITY_PENALTY_POWER)
 ```
 
-Це навмисний штраф за популярність. Для VoidTalk MVP рекомендації мають
-допомагати знаходити менш очевидні пости, а не дублювати глобальний топ.
+This is an intentional popularity penalty. For the VoidTalk MVP, recommendations should help users discover less obvious posts instead of duplicating a global top feed.
 
 ### Freshness
 
@@ -154,59 +138,55 @@ freshness_score = 0.5 ** (age_days / RECOMMENDATIONS_FRESHNESS_HALF_LIFE_DAYS)
 freshness_score = max(freshness_score, RECOMMENDATIONS_MIN_FRESHNESS_SCORE)
 ```
 
-Якщо `RECOMMENDATIONS_FRESHNESS_HALF_LIFE_DAYS <= 0`, freshness дорівнює `1.0`
-і не впливає на результат.
+If `RECOMMENDATIONS_FRESHNESS_HALF_LIFE_DAYS <= 0`, freshness is `1.0` and does not affect the result.
 
-Мінімальний freshness-score не дає старим постам повністю зникнути, якщо вони
-дуже релевантні користувачу.
+The minimum freshness score prevents old posts from disappearing completely when they are highly relevant to the user.
 
-## Сортування результатів
+## Result Sorting
 
-Після розрахунку результати сортуються за спаданням:
+After scoring, results are sorted descending by:
 
 ```text
 (recommendation_score, created_at, id)
 ```
 
-Тобто при однаковому score вище буде свіжіший пост, а потім пост із більшим
-`id`.
+For equal scores, the fresher post comes first, followed by the post with the larger `id`.
 
-## Конфігурація
+## Configuration
 
-Конфіг читається з:
+Configuration is read from:
 
 ```text
 voidtalk_api/cfg/recommendations.env
 ```
 
-Якщо файл або змінна відсутні, застосовуються дефолти з
-`voidtalk_api/core/recommendations_config.py`.
+If the file or a variable is missing, defaults from `voidtalk_api/core/recommendations_config.py` are used.
 
-| Змінна | Дефолт | Значення |
+| Variable | Default | Meaning |
 | --- | ---: | --- |
-| `RECOMMENDATIONS_DEFAULT_LIMIT` | `20` | Кількість рекомендацій без явного `limit`. |
-| `RECOMMENDATIONS_MAX_LIMIT` | `100` | Верхня межа для `limit`. |
-| `RECOMMENDATIONS_CANDIDATE_POOL_MULTIPLIER` | `8` | Наскільки більший пул кандидатів за відповідь. |
-| `RECOMMENDATIONS_LIKED_HASHTAG_WEIGHT` | `3.0` | Вага хештегів із лайкнутих постів. |
-| `RECOMMENDATIONS_AUTHORED_HASHTAG_WEIGHT` | `1.5` | Вага хештегів із власних постів. |
-| `RECOMMENDATIONS_EXPLORATION_SCORE` | `0.2` | Мінімальна релевантність для постів з хештегами. |
-| `RECOMMENDATIONS_NO_HASHTAG_SCORE` | `0.05` | Релевантність постів без хештегів. |
-| `RECOMMENDATIONS_POPULARITY_PENALTY_POWER` | `1.2` | Сила штрафу за лайки. |
-| `RECOMMENDATIONS_FRESHNESS_HALF_LIFE_DAYS` | `21.0` | Період напівзгасання freshness-score. |
-| `RECOMMENDATIONS_MIN_FRESHNESS_SCORE` | `0.25` | Мінімальний freshness-score. |
-| `RECOMMENDATIONS_EXCLUDE_OWN_POSTS` | `true` | Чи виключати власні пости з рекомендацій. |
+| `RECOMMENDATIONS_DEFAULT_LIMIT` | `20` | Number of recommendations when `limit` is not provided explicitly. |
+| `RECOMMENDATIONS_MAX_LIMIT` | `100` | Upper bound for `limit`. |
+| `RECOMMENDATIONS_CANDIDATE_POOL_MULTIPLIER` | `8` | How much larger the candidate pool is than the response. |
+| `RECOMMENDATIONS_LIKED_HASHTAG_WEIGHT` | `3.0` | Weight of hashtags from liked posts. |
+| `RECOMMENDATIONS_AUTHORED_HASHTAG_WEIGHT` | `1.5` | Weight of hashtags from the user's own posts. |
+| `RECOMMENDATIONS_EXPLORATION_SCORE` | `0.2` | Minimum relevance for posts with hashtags. |
+| `RECOMMENDATIONS_NO_HASHTAG_SCORE` | `0.05` | Relevance of posts without hashtags. |
+| `RECOMMENDATIONS_POPULARITY_PENALTY_POWER` | `1.2` | Strength of the like-count penalty. |
+| `RECOMMENDATIONS_FRESHNESS_HALF_LIFE_DAYS` | `21.0` | Half-life period for the freshness score. |
+| `RECOMMENDATIONS_MIN_FRESHNESS_SCORE` | `0.25` | Minimum freshness score. |
+| `RECOMMENDATIONS_EXCLUDE_OWN_POSTS` | `true` | Whether to exclude the user's own posts from recommendations. |
 
-## Приклад розрахунку
+## Calculation Example
 
-Користувач лайкнув два пости з `#python` і написав один пост з `#backend`.
-За дефолтних ваг:
+A user liked two posts with `#python` and wrote one post with `#backend`.
+With default weights:
 
 ```text
 affinity["python"] = 2 * 3.0 = 6.0
 affinity["backend"] = 1 * 1.5 = 1.5
 ```
 
-Кандидат має хештеги `#python #backend`, 2 лайки і створений сьогодні:
+A candidate has hashtags `#python #backend`, 2 likes, and was created today:
 
 ```text
 relevance_score = (6.0 + 1.5) / 2 = 3.75
@@ -215,28 +195,21 @@ freshness_score = 1.0
 recommendation_score ~= 1.0035
 ```
 
-Якщо інший кандидат має більше лайків, але таку саму релевантність, його
-score буде нижчим через popularity penalty.
+If another candidate has more likes but the same relevance, its score will be lower because of the popularity penalty.
 
-## Обмеження MVP
+## MVP Limitations
 
-- Немає пагінації або cursor-based догрузки саме для рекомендацій.
-- Немає негативних сигналів, наприклад "приховати пост" або "не цікаво".
-- Хештеги старих постів не backfill-яться автоматично, якщо вони були
-  створені до появи таблиць `hashtags` / `posts_hashtags`.
-- Немає персональних embedding-моделей або аналізу тексту поза хештегами.
-- Кандидати беруться з найновіших постів, тому дуже старі релевантні пости
-  можуть не потрапити в початковий пул.
+- There is no pagination or cursor-based loading specifically for recommendations.
+- There are no negative signals, such as "hide post" or "not interested".
+- Hashtags from old posts are not backfilled automatically if those posts were created before the `hashtags` / `posts_hashtags` tables existed.
+- There are no personal embedding models or text analysis beyond hashtags.
+- Candidates come from the newest posts, so very old but relevant posts may not enter the initial pool.
 
-## Де дивитися код
+## Where to Read the Code
 
-- `voidtalk_api/api/v1/endpoints/posts.py` - endpoint
-  `/api/v1/posts/recommendations`.
-- `voidtalk_api/services/recommendations.py` - побудова affinity, score і
-  фінальне сортування.
-- `voidtalk_api/repositories/recommendations.py` - SQL-запити для інтересів і
-  кандидатів.
-- `voidtalk_api/core/recommendations_config.py` - дефолти та читання `.env`.
-- `voidtalk_api/core/hashtags.py` - правила витягування хештегів.
-- `voidtalk_api/repositories/hashtags.py` - створення і прив'язка хештегів до
-  постів.
+- `voidtalk_api/api/v1/endpoints/posts.py` - `/api/v1/posts/recommendations` endpoint.
+- `voidtalk_api/services/recommendations.py` - affinity building, scoring, and final sorting.
+- `voidtalk_api/repositories/recommendations.py` - SQL queries for interests and candidates.
+- `voidtalk_api/core/recommendations_config.py` - defaults and `.env` loading.
+- `voidtalk_api/core/hashtags.py` - hashtag extraction rules.
+- `voidtalk_api/repositories/hashtags.py` - hashtag creation and linking to posts.

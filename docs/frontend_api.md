@@ -1,14 +1,14 @@
-# Frontend і API: важливі моменти
+# Frontend and API: Important Notes
 
 ## API_BASE_URL
 
-Статичний frontend не читає `.env` напряму, тому dev-конфіг лежить у:
+The static frontend does not read `.env` directly, so the development config lives in:
 
 ```text
 voidtalk_frontend/config.js
 ```
 
-Формат:
+Format:
 
 ```js
 window.VOIDTALK_CONFIG = {
@@ -16,7 +16,7 @@ window.VOIDTALK_CONFIG = {
 };
 ```
 
-У JavaScript не потрібно писати повний URL вручну. Використовуйте:
+JavaScript code should not hard-code the full API URL manually. Use:
 
 ```js
 apiFetch("/api/v1/users/me", {
@@ -24,68 +24,66 @@ apiFetch("/api/v1/users/me", {
 });
 ```
 
-`apiFetch` сам додасть `API_BASE_URL` і `credentials: "include"`.
+`apiFetch` automatically adds `API_BASE_URL` and `credentials: "include"`.
 
-## Стрічка повідомлень
+## Message Feed
 
-Для `messages.html` використовуйте повний feed endpoint:
+For `messages.html`, use the full feed endpoint:
 
 ```http
 GET /api/v1/posts/feed?limit=30
 ```
 
-Він повертає автора, optional-info профілю, хештеги, кількість лайків і
-`liked_by_current_user`. Це краще за локальні `user_ID` або локальний стан
-лайків на frontend.
+It returns the author, optional profile info, hashtags, like count, and `liked_by_current_user`. This is better than relying on local `user_ID` values or local like state in the frontend.
 
-Лайки синхронізуються напряму з backend:
+Likes are synchronized directly with the backend:
 
 ```http
 POST   /api/v1/posts/{post_id}/likes
 DELETE /api/v1/posts/{post_id}/likes
 ```
 
-## Cookie-сесія
+## Cookie Session
 
-Авторизація тримається на cookie `voidtalk_session`, яку backend виставляє після login.
+Authorization is stored in the `voidtalk_session` cookie, which the backend sets after login.
 
-Frontend перевіряє реальний стан авторизації через:
+The frontend checks the real authorization state through:
 
 ```http
 GET /api/v1/users/me
 ```
 
-Не використовуйте `localStorage` як джерело правди для авторизації. Його можна використовувати лише як кеш для відображення username.
+Do not use `localStorage` as the source of truth for authorization. It can only be used as a display cache for the username.
 
-## Host має збігатися
+## Hosts Must Match
 
-Для стабільної роботи cookie використовуйте один host:
+For stable cookie behavior, use the same host:
 
 ```text
 Frontend: http://127.0.0.1:5173
 Backend:  http://127.0.0.1:8000
 ```
 
-або:
+or:
 
 ```text
 Frontend: http://localhost:5173
 Backend:  http://localhost:8000
 ```
 
-Не змішуйте `localhost` і `127.0.0.1` в одному сценарії.
+Do not mix `localhost` and `127.0.0.1` within the same scenario.
 
 ## CORS
 
-Backend має `CORSMiddleware` з `allow_credentials=True`. Через це не можна використовувати wildcard `*` як єдине значення `allow_origins` для credentialed requests. Потрібно явно перелічувати дозволені origins.
+The backend uses `CORSMiddleware` with `allow_credentials=True`. Because of this, wildcard `*` cannot be used as the only `allow_origins` value for credentialed requests. Allowed origins must be listed explicitly.
 
-## Типова помилка
+## Common Error
 
-Якщо бачите:
+If you see:
 
 ```text
 POST http://127.0.0.1:5173/api/v1/users/register
 501 Unsupported method ('POST')
 ```
 
-це означає, що запит пішов на frontend-сервер, а не на FastAPI. Перевірте `config.js` і використання `apiFetch(...)`.
+the request went to the frontend server instead of FastAPI. Check `config.js` and make sure the request uses `apiFetch(...)`.
